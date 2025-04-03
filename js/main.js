@@ -126,6 +126,9 @@ function handleVersionUpdate() {
 function initApp() {
     console.log('打工人工时记录应用启动中...');
     
+    // 禁用浏览器缓存
+    disableBrowserCache();
+    
     // 初始化各个控制器和服务
     try {
         // 检查是否需要重新加载配置
@@ -699,4 +702,76 @@ function handleLaunchAction() {
         // 切换到报表页面
         document.getElementById('tab-stats').click();
     }
+}
+
+/**
+ * 禁用浏览器缓存
+ */
+function disableBrowserCache() {
+    // 1. 为所有脚本和样式表添加随机参数
+    console.log('禁用浏览器缓存...');
+    
+    // 添加时间戳到所有已加载的脚本
+    document.querySelectorAll('script[src]').forEach(script => {
+        const currentSrc = script.getAttribute('src');
+        if (currentSrc && !currentSrc.includes('?')) {
+            script.setAttribute('src', `${currentSrc}?v=${Date.now()}`);
+        }
+    });
+    
+    // 添加时间戳到所有已加载的样式表
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+        const currentHref = link.getAttribute('href');
+        if (currentHref && !currentHref.includes('?')) {
+            link.setAttribute('href', `${currentHref}?v=${Date.now()}`);
+        }
+    });
+    
+    // 2. 设置HTTP头以防止缓存
+    if (window.fetch) {
+        // 为fetch请求设置默认的请求头，防止缓存
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            // 确保options.headers存在
+            options.headers = options.headers || {};
+            
+            // 添加防止缓存的请求头
+            options.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+            options.headers['Pragma'] = 'no-cache';
+            options.headers['Expires'] = '0';
+            
+            // 添加随机参数到URL
+            const urlWithCache = url.includes('?') 
+                ? `${url}&nocache=${Date.now()}` 
+                : `${url}?nocache=${Date.now()}`;
+            
+            return originalFetch(urlWithCache, options);
+        };
+    }
+    
+    // 3. 重载页面时强制从服务器获取新内容
+    window.addEventListener('beforeunload', () => {
+        // 设置一个时间戳，当页面重载时使用
+        sessionStorage.setItem('reloadTimestamp', Date.now().toString());
+    });
+    
+    // 4. 检查是否是页面重载，如果是，检查引用的资源是否需要强制刷新
+    const reloadTimestamp = sessionStorage.getItem('reloadTimestamp');
+    if (reloadTimestamp) {
+        console.log('检测到页面重载，正在更新资源引用...');
+        
+        // 清除重载时间戳
+        sessionStorage.removeItem('reloadTimestamp');
+        
+        // 如果是PWA模式，可能需要检查service worker和缓存
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    registration.update();
+                }
+            });
+        }
+    }
+    
+    console.log('浏览器缓存禁用完成');
 } 
