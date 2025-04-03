@@ -318,8 +318,10 @@ const SettingsController = {
                 <div>
                     <h3 class="text-lg font-medium mb-3">关于</h3>
                     <div class="bg-gray-50 p-3 rounded text-sm">
-                        <p>虽然什么都没干，但还是辛苦我了 v${CONFIG.VERSION || '1.0.0'}</p>
+                        <p>辛苦我了 🐱 v${CONFIG.VERSION || '1.0.0'}</p>
                         <p class="mt-1">一个简单的工时追踪工具，记录您的工作时间和加班情况。</p>
+                        <p class="mt-1">100% 本地实现，无需担心数据隐私问题</p>
+                        <p class="mt-1">Thanks Cursor ♥️</p>
                     </div>
                 </div>
                 
