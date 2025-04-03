@@ -6,7 +6,7 @@ const SettingsController = {
     TEMPLATES: {
         LUNCH_BREAK_NOTICE: `
             <div class="bg-blue-50 p-3 rounded text-sm text-blue-800">
-                <p><i class="ri-information-line mr-1"></i>如果您的企业统计工时包含午休时间，请关闭“扣除”开关。</p>
+                <p><i class="ri-information-line mr-1"></i>如果您的企业统计工时包含午休时间，请关闭"扣除"开关。</p>
             </div>
         `,
         ABOUT_SECTION: `
@@ -78,6 +78,31 @@ const SettingsController = {
      */
     formatTime(hour, minute) {
         return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    },
+    
+    /**
+     * 解析时间字符串
+     * @param {string} timeStr 时间字符串，格式为 "HH:MM"
+     * @returns {Array} 包含小时和分钟的数组 [hour, minute]
+     */
+    parseTime(timeStr) {
+        // 默认值
+        const defaultTime = [9, 0]; // 默认为9:00
+        
+        // 检查输入
+        if (!timeStr || typeof timeStr !== 'string') {
+            return defaultTime;
+        }
+        
+        // 解析时间字符串
+        const timeParts = timeStr.split(':').map(part => parseInt(part, 10));
+        
+        // 检查解析结果是否有效
+        if (timeParts.length !== 2 || isNaN(timeParts[0]) || isNaN(timeParts[1])) {
+            return defaultTime;
+        }
+        
+        return timeParts;
     },
 
     /**
@@ -228,67 +253,62 @@ const SettingsController = {
      * 保存设置
      */
     saveSettings() {
-        // 获取设置值
-        const standardWorkHours = parseInt(document.getElementById('settings-standard-hours').value, 10) || 8;
-        const startTimeValue = document.getElementById('settings-start-time').value || '09:00';
-        const endTimeValue = document.getElementById('settings-end-time').value || '18:00';
+        // 获取各设置项的值
+        const standardHours = parseInt(document.getElementById('settings-standard-hours').value) || 8;
+        const startTime = document.getElementById('settings-start-time').value;
+        const endTime = document.getElementById('settings-end-time').value;
         const excludeBreakTime = document.getElementById('settings-exclude-break-time').checked;
         
+        // 检查设置是否有变化
+        const oldExcludeBreakTime = CONFIG.EXCLUDE_BREAK_TIME;
+        const settingsChanged = oldExcludeBreakTime !== excludeBreakTime; // 特别检查午休设置是否变化
+        
         // 解析时间
-        const [startHour, startMinute] = startTimeValue.split(':').map(Number);
-        const [endHour, endMinute] = endTimeValue.split(':').map(Number);
-
+        const [startHour, startMinute] = this.parseTime(startTime);
+        const [endHour, endMinute] = this.parseTime(endTime);
+        
+        // 创建配置对象
+        const config = {
+            standardWorkHours: standardHours,
+            startHour: startHour,
+            startMinute: startMinute,
+            endHour: endHour,
+            endMinute: endMinute,
+            excludeBreakTime: excludeBreakTime
+        };
+        
+        // 保存配置
+        Store.saveConfig(config);
+        
         // 更新配置
-        Store.saveConfig({
-            standardWorkHours,
-            startHour,
-            startMinute,
-            endHour,
-            endMinute,
-            excludeBreakTime
-        });
-
-        // 更新全局配置
-        CONFIG.WORK_HOURS.STANDARD_HOURS = standardWorkHours;
-        CONFIG.WORK_HOURS.START_HOUR = startHour;
-        CONFIG.WORK_HOURS.START_MINUTE = startMinute;
-        CONFIG.WORK_HOURS.END_HOUR = endHour;
-        CONFIG.WORK_HOURS.END_MINUTE = endMinute;
-        CONFIG.EXCLUDE_BREAK_TIME = excludeBreakTime;
-
-        // 同时更新用户偏好设置中的工作时间
-        Store.save(CONFIG.STORAGE_KEYS.USER_WORK_HOURS, {
-            standardHours: standardWorkHours,
-            startHour,
-            startMinute,
-            endHour,
-            endMinute,
-            excludeBreakTime
-        });
-
-        // 更新TimerService的配置（如果需要的话）
-        if (TimerService && typeof TimerService.updateConfigSettings === 'function') {
-            TimerService.updateConfigSettings();
-        }
-
-        // 更新界面
-        if (UIController && typeof UIController.updateUIBasedOnWorkStatus === 'function') {
-            UIController.updateUIBasedOnWorkStatus();
+        TimerService.updateConfigSettings();
+        
+        // 如果是午休设置变化，确保立即更新统计数据
+        if (settingsChanged) {
+            console.log('午休设置已变更，立即更新统计数据', { 
+                oldValue: oldExcludeBreakTime, 
+                newValue: excludeBreakTime 
+            });
+            
+            // 确保立即刷新统计数据
+            if (StatsController && typeof StatsController.recalculateAllStats === 'function') {
+                StatsController.recalculateAllStats();
+            }
         }
         
-        // 更新统计信息
-        if (StatsController && typeof StatsController.updateStats === 'function') {
-            StatsController.updateStats();
-        }
-
-        console.log('设置已保存', {
-            standardWorkHours,
-            startHour,
-            startMinute,
-            endHour,
-            endMinute,
-            excludeBreakTime
-        });
+        // 在设置页面显示保存成功通知
+        const successMessage = document.createElement('div');
+        successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white py-2 px-4 rounded-md shadow-md transition-opacity duration-300';
+        successMessage.textContent = '设置已保存';
+        document.body.appendChild(successMessage);
+        
+        // 3秒后移除通知
+        setTimeout(() => {
+            successMessage.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(successMessage);
+            }, 300);
+        }, 3000);
     },
     
     /**

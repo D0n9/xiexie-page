@@ -615,6 +615,21 @@ const StatsController = {
                             // 无午休设置时，直接使用原始时间
                             totalWorkMinutes = rawTotalMinutes;
                         }
+                        
+                        // 检查是否存在实际打卡时间和标准计算时间的差异
+                        // 如果实际打卡时间早于标准上班时间，应使用保存的工时（已经基于标准上班时间计算）
+                        if (dailyRecord.realStartTime && dailyRecord.startTime && 
+                            dailyRecord.realStartTime !== dailyRecord.startTime) {
+                            console.log('检测到实际打卡时间与计算时间不同，使用保存的工时数据', {
+                                realStartTime: new Date(dailyRecord.realStartTime),
+                                startTime: new Date(dailyRecord.startTime),
+                                savedWorkHours: dailyRecord.workHours,
+                                savedWorkMinutes: dailyRecord.workMinutes
+                            });
+                            
+                            // 使用保存的工时，这个值已经正确计算了标准上班时间
+                            totalWorkMinutes = dailyRecord.workHours * 60 + dailyRecord.workMinutes;
+                        }
                     } else {
                         // 向后兼容：如果没有原始时间数据，使用保存的工时
                         totalWorkMinutes = (dailyRecord.workHours || 0) * 60 + (dailyRecord.workMinutes || 0);
@@ -689,8 +704,30 @@ const StatsController = {
             const breakHours = Math.floor(breakMinutes / 60);
             const breakMinutesRemainder = breakMinutes % 60;
             
-            // 显示标准工时信息，移除午休时间描述
+            // 显示标准工时信息
             standardTimeEl.innerHTML = `统计工时：${expectedDuration.hours}小时${expectedDuration.minutes > 0 ? expectedDuration.minutes + '分钟' : ''}`;
+            
+            // 获取当前日期记录，确保存在
+            const currentDateRecord = Store.getDailyRecord(dateStr);
+            
+            // 如果日期有实际记录且实际打卡时间早于标准上班时间，添加说明
+            if (currentDateRecord) {
+                // 判断是否是单条记录或数组
+                if (!Array.isArray(currentDateRecord) && currentDateRecord.realStartTime && 
+                    currentDateRecord.startTime && currentDateRecord.realStartTime !== currentDateRecord.startTime) {
+                    // 单条记录且有时间差异
+                    const realStartTimeObj = new Date(currentDateRecord.realStartTime);
+                    const startTimeObj = new Date(currentDateRecord.startTime);
+                } else if (Array.isArray(currentDateRecord) && currentDateRecord.length > 0) {
+                    // 数组记录，检查第一条
+                    const firstRecord = currentDateRecord[0];
+                    if (firstRecord.realStartTime && firstRecord.startTime && 
+                        firstRecord.realStartTime !== firstRecord.startTime) {
+                        const realStartTimeObj = new Date(firstRecord.realStartTime);
+                        const startTimeObj = new Date(firstRecord.startTime);
+                    }
+                }
+            }
         }
         
         // 更新时间线
@@ -1132,7 +1169,9 @@ const StatsController = {
                         });
                         
                         // 完成累加后，基于总工时计算加班时间
-                        const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                        // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                        const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                        const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
                         dayTotalOvertimeMinutes = Math.max(0, dayTotalWorkMinutes - expectedWorkMinutes);
                     } else {
                         // 单条记录情况
@@ -1164,7 +1203,9 @@ const StatsController = {
                         dayTotalWorkMinutes = recordWorkMinutes;
                         
                         // 基于计算的工作时长计算加班时间
-                        const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                        // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                        const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                        const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
                         dayTotalOvertimeMinutes = Math.max(0, dayTotalWorkMinutes - expectedWorkMinutes);
                     }
                     
@@ -1368,6 +1409,7 @@ const StatsController = {
                 const todayDuration = TimerService.calculateTodayWorkDuration();
                 const todayOvertime = TimerService.calculateTodayOvertime();
                 
+                // 使用 TimerService 提供的正确计算的工时数据，其中已经考虑了标准上班时间
                 standardWorkHours = Math.min(
                     parseFloat(((todayDuration.hours * 60 + todayDuration.minutes) / 60).toFixed(2)), 
                     CONFIG.WORK_HOURS.STANDARD_HOURS
@@ -1676,13 +1718,17 @@ const StatsController = {
                             dayTotalWorkMinutes += recordWorkMinutes;
                             
                             // 计算加班时间
-                            const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                            // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                            const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                            const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
                             const recordOvertimeMinutes = Math.max(0, recordWorkMinutes - expectedWorkMinutes);
                             dayTotalOvertimeMinutes += recordOvertimeMinutes;
                         });
                         
                         // 完成累加后，基于总工时计算加班时间
-                        const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                        // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                        const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                        const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
                         dayTotalOvertimeMinutes = Math.max(0, dayTotalWorkMinutes - expectedWorkMinutes);
                     } else {
                         // 单条记录情况
@@ -1715,7 +1761,9 @@ const StatsController = {
                         dayTotalWorkMinutes = recordWorkMinutes;
                         
                         // 基于计算的工作时长计算加班时间
-                        const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                        // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                        const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                        const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
                         dayTotalOvertimeMinutes = Math.max(0, dayTotalWorkMinutes - expectedWorkMinutes);
                     }
                     
@@ -2102,8 +2150,9 @@ const StatsController = {
         // 使用Map按日期分组，避免重复计算
         const dailyWorkMap = new Map();
         
-        // 获取标准工作时长（分钟）
-        const standardWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+        // 获取标准工作时长（分钟）- 使用TimerService方法确保考虑午休设置
+        const expectedDuration = TimerService.calculateExpectedWorkDuration();
+        const standardWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
         
         // 计算每天的工作时长，保存到Map中
         yearRecords.forEach(record => {
@@ -2619,6 +2668,58 @@ const StatsController = {
         if (this.weekChart) {
             this.weekChart.destroy();
             this.weekChart = null;
+        }
+        
+        if (this.monthChart) {
+            this.monthChart.destroy();
+            this.monthChart = null;
+        }
+        
+        if (this.yearChart) {
+            this.yearChart.destroy();
+            this.yearChart = null;
+        }
+    },
+    
+    /**
+     * 重新计算所有统计数据
+     * 在设置变更时调用，以确保统计数据反映最新设置
+     */
+    recalculateAllStats() {
+        // 记录日志
+        console.log('重新计算所有统计数据，午休设置：', CONFIG.EXCLUDE_BREAK_TIME);
+        
+        // 更新当前显示的统计数据
+        this.updateStats();
+        
+        // 如果统计页面不是当前活动页面，我们可能不需要立即重新计算
+        // 可以通过检查当前活动的标签页来确定
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) {
+            const tabId = activeTab.id.replace('tab-', '');
+            if (tabId !== 'stats') {
+                console.log('统计页面不是当前活动页面，跳过立即更新');
+                return;
+            }
+        }
+        
+        // 重置并更新所有周期的数据
+        switch (this.currentPeriod) {
+            case 'day':
+                // 更新日统计视图已经在updateStats()中完成
+                break;
+            case 'week':
+                // 确保周视图被正确更新
+                this.updateWeekStats();
+                break;
+            case 'month':
+                // 确保月视图被正确更新
+                this.updateMonthStats();
+                break;
+            case 'year':
+                // 确保年视图被正确更新
+                this.updateYearStats();
+                break;
         }
     },
     

@@ -199,7 +199,7 @@ const UserPreferences = {
                     </div>
                     
                     <div class="bg-blue-50 p-3 rounded text-sm text-blue-800">
-                        <p><i class="ri-information-line mr-1"></i>如果您的企业统计工时包含午休时间，请关闭“扣除”开关。</p>
+                        <p><i class="ri-information-line mr-1"></i>如果您的企业统计工时包含午休时间，请关闭"扣除"开关。</p>
                     </div>
                 </div>
                 
@@ -315,12 +315,18 @@ const UserPreferences = {
             TimerService.updateCountdown();
         }
         
-        // 如果当前在统计标签页，更新显示
+        // 如果当前在统计标签页，确保立即更新统计数据
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const tabId = activeTab.id.replace('tab-', '');
             if (tabId === 'stats') {
-                StatsController.updateStats();
+                // 使用 StatsController 的重新计算方法确保获取最新数据
+                if (StatsController && typeof StatsController.recalculateAllStats === 'function') {
+                    StatsController.recalculateAllStats();
+                } else {
+                    // 兼容性处理，如果新方法不存在，使用旧方法
+                    StatsController.updateStats();
+                }
             }
         }
     },
