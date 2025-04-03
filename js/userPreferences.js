@@ -199,8 +199,8 @@ const UserPreferences = {
                     </div>
                     
                     <div class="bg-blue-50 p-3 rounded text-sm text-blue-800">
-                        <p><i class="ri-information-line mr-1"></i> 注意：如果您的上下班时间包含午休，请在"标准工作时长"中填入扣除午休后的实际工作时间。</p>
-                        <p class="mt-1">例如：上班 10:00 到下班 19:00，中间有 1 小时午休，则实际工作 8 小时。</p>
+                        <p><i class="ri-information-line mr-1"></i> 注意：如果您的标准工时包含午休时间，请关闭“扣除”开关。</p>
+                        <p class="mt-1">例如：上班 10:00 到下班 19:00，其中 1 小时午休，实际工时 9 小时。</p>
                     </div>
                 </div>
                 

@@ -54,6 +54,22 @@ const UIController = {
         
         // 根据当前工作状态更新UI
         this.updateUIBasedOnWorkStatus();
+        
+        // 更新界面版本号
+        this.updateAppVersion();
+        
+        console.log('UI控制器初始化完成');
+    },
+    
+    /**
+     * 更新界面版本号
+     */
+    updateAppVersion() {
+        // 更新主页面的版本号
+        const versionElement = document.getElementById('app-version');
+        if (versionElement) {
+            versionElement.textContent = CONFIG.APP_VERSION || '1.0.0';
+        }
     },
     
     /**

@@ -2,6 +2,31 @@
  * 设置控制器
  */
 const SettingsController = {
+    // 常量定义
+    TEMPLATES: {
+        LUNCH_BREAK_NOTICE: `
+            <div class="bg-blue-50 p-3 rounded text-sm text-blue-800">
+                <p><i class="ri-information-line mr-1"></i> 注意：如果您的标准工时包含午休时间，请关闭"扣除"开关。</p>
+                <p class="mt-1">例如：上班 10:00 到下班 19:00，其中 1 小时午休，实际工时 9 小时。</p>
+            </div>
+        `,
+        ABOUT_SECTION: `
+            <div>
+                <h3 class="text-lg font-medium mb-3">关于</h3>
+                <div class="bg-gray-50 p-3 rounded text-sm">
+                    <p>虽然什么都没干，但还是辛苦我了 v${CONFIG.APP_VERSION || '1.0.0'}</p>
+                    <p class="mt-1">一个简单的工时追踪工具，记录您的工作时间和加班情况。</p>
+                </div>
+            </div>
+        `
+    },
+    
+    // 关于信息配置
+    ABOUT_INFO: {
+        TITLE: "辛苦我了 🐱",
+        DESCRIPTION: "一个简单的工时追踪工具，记录您的工作时间和加班情况。</br> 100% 本地实现，无需担心数据隐私问题 ✅</br></br> Thank Cursor ♥️"
+    },
+
     /**
      * 初始化设置控制器
      */
@@ -18,6 +43,112 @@ const SettingsController = {
         if (settingsTab) {
             settingsTab.addEventListener('click', () => this.renderSettings());
         }
+        
+        // 更新index.html中的关于信息
+        this.updateAboutInfo();
+    },
+    
+    /**
+     * 更新关于信息到DOM
+     */
+    updateAboutInfo() {
+        // 更新设置页面中的关于信息
+        const aboutDescElement = document.querySelector('#settings-content .bg-white:last-child p:last-child');
+        if (aboutDescElement) {
+            aboutDescElement.textContent = this.ABOUT_INFO.DESCRIPTION;
+        }
+        
+        // 更新设置页面中的关于标题
+        const aboutTitleElement = document.querySelector('#settings-content .bg-white:last-child p:first-of-type');
+        if (aboutTitleElement) {
+            aboutTitleElement.innerHTML = `${this.ABOUT_INFO.TITLE} v<span id="app-version">1.0.0</span>`;
+        }
+        
+        // 更新页脚信息如果需要
+        const footerElement = document.querySelector('footer .inline-flex');
+        if (footerElement) {
+            footerElement.innerHTML = `<i class="ri-cow-line mr-1 text-primary"></i>${this.ABOUT_INFO.TITLE.split('辛苦我了')[0]}辛苦我了 由 Github Pages 强力驱动`;
+        }
+    },
+
+    /**
+     * 格式化时间
+     * @param {number} hour 小时
+     * @param {number} minute 分钟
+     * @returns {string} 格式化后的时间字符串
+     */
+    formatTime(hour, minute) {
+        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    },
+
+    /**
+     * 生成工作时间设置HTML
+     * @param {Object} config 配置对象
+     * @returns {string} 工作时间设置HTML
+     */
+    generateWorkTimeSettingsHTML(config) {
+        const { standardWorkHours, startHour, startMinute, endHour, endMinute, excludeBreakTime } = config;
+        
+        return `
+            <div>
+                <h3 class="text-lg font-medium mb-3">工作时间设置</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <label class="font-medium">标准工作时长</label>
+                            <p class="text-xs text-gray-500">实际工作时间（扣除午休）</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="number" id="settings-standard-hours" min="1" max="12" value="${standardWorkHours}" 
+                                   class="w-16 py-1 px-2 border border-gray-300 rounded text-center">
+                            <span class="ml-2">小时</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium">上班时间</label>
+                        <div class="flex items-center">
+                            <input type="time" id="settings-start-time" value="${this.formatTime(startHour, startMinute)}" 
+                                   class="py-1 px-2 border border-gray-300 rounded">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium">下班时间</label>
+                        <div class="flex items-center">
+                            <input type="time" id="settings-end-time" value="${this.formatTime(endHour, endMinute)}" 
+                                   class="py-1 px-2 border border-gray-300 rounded">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium">在工时计算中扣除午休时间</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="settings-exclude-break-time" class="sr-only peer" ${excludeBreakTime ? 'checked' : ''}>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                    
+                    ${this.TEMPLATES.LUNCH_BREAK_NOTICE}
+                </div>
+            </div>
+        `;
+    },
+    
+    /**
+     * 生成关于部分的HTML
+     * @returns {string} 关于部分的HTML
+     */
+    generateAboutSectionHTML() {
+        return `
+            <div>
+                <h3 class="text-lg font-medium mb-3">关于</h3>
+                <div class="bg-gray-50 p-3 rounded text-sm">
+                    <p>${this.ABOUT_INFO.TITLE} v${CONFIG.APP_VERSION || '1.0.0'}</p>
+                    <p class="mt-1">${this.ABOUT_INFO.DESCRIPTION}</p>
+                </div>
+            </div>
+        `;
     },
 
     /**
@@ -37,11 +168,6 @@ const SettingsController = {
         settingsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         settingsModal.id = 'settings-modal';
 
-        // 格式化时间
-        const formatTime = (hour, minute) => {
-            return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        };
-
         // 设置弹出框内容
         settingsModal.innerHTML = `
             <div class="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -54,60 +180,17 @@ const SettingsController = {
                 
                 <div class="space-y-6">
                     <!-- 工作时间设置 -->
-                    <div>
-                        <h3 class="text-lg font-medium mb-3">工作时间设置</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <label class="font-medium">标准工作时长</label>
-                                    <p class="text-xs text-gray-500">实际工作时间（扣除午休）</p>
-                                </div>
-                                <div class="flex items-center">
-                                    <input type="number" id="settings-standard-hours" min="1" max="12" value="${standardWorkHours}" 
-                                           class="w-16 py-1 px-2 border border-gray-300 rounded text-center">
-                                    <span class="ml-2">小时</span>
-                                </div>
-                            </div>
-                            
-                            <div class="flex justify-between items-center">
-                                <label class="font-medium">上班时间</label>
-                                <div class="flex items-center">
-                                    <input type="time" id="settings-start-time" value="${formatTime(startHour, startMinute)}" 
-                                           class="py-1 px-2 border border-gray-300 rounded">
-                                </div>
-                            </div>
-                            
-                            <div class="flex justify-between items-center">
-                                <label class="font-medium">下班时间</label>
-                                <div class="flex items-center">
-                                    <input type="time" id="settings-end-time" value="${formatTime(endHour, endMinute)}" 
-                                           class="py-1 px-2 border border-gray-300 rounded">
-                                </div>
-                            </div>
-                            
-                            <div class="flex justify-between items-center">
-                                <label class="font-medium">在工时计算中扣除午休时间</label>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="settings-exclude-break-time" class="sr-only peer" ${excludeBreakTime ? 'checked' : ''}>
-                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                </label>
-                            </div>
-                            
-                            <div class="bg-blue-50 p-3 rounded text-sm text-blue-800">
-                                <p><i class="ri-information-line mr-1"></i> 注意：如果您的上下班时间包含午休，请在"标准工作时长"中填入扣除午休后的实际工作时间。</p>
-                                <p class="mt-1">例如：上班 9:00 到下班 18:00，中间有 1 小时午休，则实际工作 8 小时。</p>
-                            </div>
-                        </div>
-                    </div>
+                    ${this.generateWorkTimeSettingsHTML({
+                        standardWorkHours,
+                        startHour,
+                        startMinute,
+                        endHour,
+                        endMinute,
+                        excludeBreakTime
+                    })}
                     
                     <!-- 关于 -->
-                    <div>
-                        <h3 class="text-lg font-medium mb-3">关于</h3>
-                        <div class="bg-gray-50 p-3 rounded text-sm">
-                            <p>辛苦我了 v${CONFIG.VERSION}</p>
-                            <p class="mt-1">一个简单的工时追踪工具，记录您的工作时间和加班情况。</p>
-                        </div>
-                    </div>
+                    ${this.generateAboutSectionHTML()}
                 </div>
                 
                 <div class="mt-8 flex justify-end">
@@ -223,15 +306,10 @@ const SettingsController = {
             const endTimeInput = document.getElementById('settings-end-time');
             const excludeBreakTimeInput = document.getElementById('settings-exclude-break-time');
             
-            // 格式化时间
-            const formatTime = (hour, minute) => {
-                return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-            };
-            
             // 更新UI
             if (standardHoursInput) standardHoursInput.value = CONFIG.WORK_HOURS.STANDARD_HOURS;
-            if (startTimeInput) startTimeInput.value = formatTime(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE);
-            if (endTimeInput) endTimeInput.value = formatTime(CONFIG.WORK_HOURS.END_HOUR, CONFIG.WORK_HOURS.END_MINUTE);
+            if (startTimeInput) startTimeInput.value = this.formatTime(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE);
+            if (endTimeInput) endTimeInput.value = this.formatTime(CONFIG.WORK_HOURS.END_HOUR, CONFIG.WORK_HOURS.END_MINUTE);
             if (excludeBreakTimeInput) excludeBreakTimeInput.checked = CONFIG.EXCLUDE_BREAK_TIME;
             
             console.log('设置UI已更新');
@@ -251,11 +329,6 @@ const SettingsController = {
         let endHour = CONFIG.WORK_HOURS.END_HOUR;
         let endMinute = CONFIG.WORK_HOURS.END_MINUTE;
         let excludeBreakTime = CONFIG.EXCLUDE_BREAK_TIME;
-
-        // 格式化时间
-        const formatTime = (hour, minute) => {
-            return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        };
         
         // 获取设置内容容器
         const settingsContent = document.getElementById('settings-content');
@@ -268,62 +341,17 @@ const SettingsController = {
         settingsContent.innerHTML = `
             <div class="space-y-6 p-4">
                 <!-- 工作时间设置 -->
-                <div>
-                    <h3 class="text-lg font-medium mb-3">工作时间设置</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <label class="font-medium">标准工作时长</label>
-                                <p class="text-xs text-gray-500">实际工作时间（扣除午休）</p>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="number" id="settings-standard-hours" min="1" max="12" value="${standardWorkHours}" 
-                                       class="w-16 py-1 px-2 border border-gray-300 rounded text-center">
-                                <span class="ml-2">小时</span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-between items-center">
-                            <label class="font-medium">上班时间</label>
-                            <div class="flex items-center">
-                                <input type="time" id="settings-start-time" value="${formatTime(startHour, startMinute)}" 
-                                       class="py-1 px-2 border border-gray-300 rounded">
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-between items-center">
-                            <label class="font-medium">下班时间</label>
-                            <div class="flex items-center">
-                                <input type="time" id="settings-end-time" value="${formatTime(endHour, endMinute)}" 
-                                       class="py-1 px-2 border border-gray-300 rounded">
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-between items-center">
-                            <label class="font-medium">在工时计算中扣除午休时间</label>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="settings-exclude-break-time" class="sr-only peer" ${excludeBreakTime ? 'checked' : ''}>
-                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                            </label>
-                        </div>
-                        
-                        <div class="bg-blue-50 p-3 rounded text-sm text-blue-800">
-                            <p><i class="ri-information-line mr-1"></i> 注意：如果您的上下班时间包含午休，请在"标准工作时长"中填入扣除午休后的实际工作时间。</p>
-                            <p class="mt-1">例如：上班 9:00 到下班 18:00，中间有 1 小时午休，则实际工作 8 小时。</p>
-                        </div>
-                    </div>
-                </div>
+                ${this.generateWorkTimeSettingsHTML({
+                    standardWorkHours,
+                    startHour,
+                    startMinute,
+                    endHour,
+                    endMinute,
+                    excludeBreakTime
+                })}
                 
                 <!-- 关于 -->
-                <div>
-                    <h3 class="text-lg font-medium mb-3">关于</h3>
-                    <div class="bg-gray-50 p-3 rounded text-sm">
-                        <p>辛苦我了 🐱 v${CONFIG.VERSION || '1.0.0'}</p>
-                        <p class="mt-1">一个简单的工时追踪工具，记录您的工作时间和加班情况。</p>
-                        <p class="mt-1">100% 本地实现，无需担心数据隐私问题</p>
-                        <p class="mt-1">Thanks Cursor ♥️</p>
-                    </div>
-                </div>
+                ${this.generateAboutSectionHTML()}
                 
                 <div class="mt-8 flex justify-end">
                     <button id="save-settings-page" 
@@ -333,6 +361,9 @@ const SettingsController = {
                 </div>
             </div>
         `;
+        
+        // 在渲染完成后更新关于信息
+        this.updateAboutInfo();
         
         // 绑定保存按钮事件
         document.getElementById('save-settings-page').addEventListener('click', () => {
