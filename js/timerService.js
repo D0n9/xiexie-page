@@ -135,27 +135,26 @@ const TimerService = {
      * 更新已经过的时间显示
      */
     updateElapsedTime() {
-        // 获取当天总工作时长（包括当前会话和历史记录）
-        const totalWorkDuration = this.calculateTodayWorkDuration();
-        
-        // 将总工作时长转换为毫秒格式以用于显示（小时和分钟）
-        let totalWorkMs = (totalWorkDuration.hours * 3600 + totalWorkDuration.minutes * 60) * 1000;
-        
-        // 如果当前正在工作中，加上当前会话的秒数以保持秒位更新
         if (this.workStatus === CONFIG.STATUS.WORKING && this.workStartTime) {
+            // 工作中状态 - 计时器显示从打卡时间到现在的实际经过时间，不考虑午休时间
             const now = new Date();
-            const currentSessionMs = now - this.workStartTime;
+            const elapsedMs = now - this.workStartTime;
+            document.getElementById('time-display').textContent = Utils.formatDuration(elapsedMs);
+        } else if (this.workStatus === CONFIG.STATUS.COMPLETED && this.workStartTime && this.workEndTime) {
+            // 已下班状态 - 计时器显示从上班到下班的实际经过时间，不考虑午休时间
+            const elapsedMs = this.workEndTime - this.workStartTime;
+            document.getElementById('time-display').textContent = Utils.formatDuration(elapsedMs);
+        } else {
+            // 未上班状态 - 使用今日工时显示（如果有历史记录）
+            // 获取当天总工作时长（包括当前会话和历史记录）
+            const totalWorkDuration = this.calculateTodayWorkDuration();
             
-            // 计算当前会话时间的秒数部分（不包括整分钟）
-            const currentSessionSeconds = Math.floor((currentSessionMs / 1000) % 60);
+            // 将总工作时长转换为毫秒格式以用于显示（小时和分钟）
+            let totalWorkMs = (totalWorkDuration.hours * 3600 + totalWorkDuration.minutes * 60) * 1000;
             
-            // 将秒数加入到总时长中
-            totalWorkMs += currentSessionSeconds * 1000;
-        } 
-        // 已下班状态 - 时间应该固定不变，不再更新秒数
-        
-        // 更新圆圈中的时间显示为总工作时长
-        document.getElementById('time-display').textContent = Utils.formatDuration(totalWorkMs);
+            // 更新圆圈中的时间显示为总工作时长
+            document.getElementById('time-display').textContent = Utils.formatDuration(totalWorkMs);
+        }
     },
     
     /**
@@ -1055,6 +1054,62 @@ const TimerService = {
         // 确保整个UI都被更新，包括状态图标、按钮和计时器圆圈
         if (UIController && typeof UIController.updateUIBasedOnWorkStatus === 'function') {
             UIController.updateUIBasedOnWorkStatus();
+        }
+    },
+
+    /**
+     * 更新工时记录
+     * 在工作状态变化、配置更新等情况下调用，确保工时记录准确反映当前状态
+     */
+    updateWorkRecord() {
+        // 只更新已有记录
+        if (this.workStartTime && this.workEndTime) {
+            const recordId = `${this.workStartTime.getTime()}`;
+            
+            // 计算工作时间（毫秒）
+            let elapsedMs = this.workEndTime - this.workStartTime;
+            
+            // 计算工作时间（分钟）
+            let actualWorkMinutes = Math.round(elapsedMs / 60000);
+            
+            // 根据用户设置确定是否扣除午休时间（仅影响统计数据，不影响打卡页面的计时器显示）
+            if (CONFIG.EXCLUDE_BREAK_TIME) {
+                // 获取标准午休时间（分钟）
+                const standardBreakMinutes = (CONFIG.WORK_HOURS.BREAK_END_HOUR - CONFIG.WORK_HOURS.BREAK_START_HOUR) * 60 +
+                                           (CONFIG.WORK_HOURS.BREAK_END_MINUTE - CONFIG.WORK_HOURS.BREAK_START_MINUTE);
+                
+                // 只有当工作时间超过午休时间，才扣除午休时间
+                if (actualWorkMinutes > standardBreakMinutes) {
+                    actualWorkMinutes -= standardBreakMinutes;
+                }
+            }
+            
+            // 转换为小时和分钟
+            const hours = Math.floor(actualWorkMinutes / 60);
+            const minutes = actualWorkMinutes % 60;
+            
+            // 更新或添加工作记录
+            Store.updateWorkRecord(
+                recordId,
+                Utils.formatDate(this.workStartTime),
+                this.workStartTime,
+                this.workEndTime,
+                hours,
+                minutes
+            );
+            
+            // 如果有实际打卡时间，保存用于查询
+            if (this.realClockInTime) {
+                Store.saveRealClockInTime(recordId, this.realClockInTime);
+            }
+            
+            console.log('工作记录已更新', {
+                startTime: this.workStartTime,
+                endTime: this.workEndTime,
+                realClockInTime: this.realClockInTime,
+                hours,
+                minutes
+            });
         }
     },
 }; 
