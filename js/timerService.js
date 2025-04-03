@@ -945,43 +945,116 @@ const TimerService = {
         const savedConfig = Store.loadConfig();
         
         if (savedConfig) {
+            // 记录原始配置值，用于检测变化
+            const oldStandardHours = CONFIG.WORK_HOURS.STANDARD_HOURS;
+            const oldStartHour = CONFIG.WORK_HOURS.START_HOUR;
+            const oldStartMinute = CONFIG.WORK_HOURS.START_MINUTE;
+            const oldEndHour = CONFIG.WORK_HOURS.END_HOUR;
+            const oldEndMinute = CONFIG.WORK_HOURS.END_MINUTE;
+            const oldExcludeBreakTime = CONFIG.EXCLUDE_BREAK_TIME;
+            
+            // 配置是否有变化的标志
+            let configChanged = false;
+            
             // 更新工作时间设置
             if (typeof savedConfig.standardWorkHours === 'number') {
-                CONFIG.WORK_HOURS.STANDARD_HOURS = savedConfig.standardWorkHours;
+                if (CONFIG.WORK_HOURS.STANDARD_HOURS !== savedConfig.standardWorkHours) {
+                    CONFIG.WORK_HOURS.STANDARD_HOURS = savedConfig.standardWorkHours;
+                    configChanged = true;
+                }
             }
             
             if (typeof savedConfig.startHour === 'number' && typeof savedConfig.startMinute === 'number') {
-                CONFIG.WORK_HOURS.START_HOUR = savedConfig.startHour;
-                CONFIG.WORK_HOURS.START_MINUTE = savedConfig.startMinute;
+                if (CONFIG.WORK_HOURS.START_HOUR !== savedConfig.startHour || 
+                    CONFIG.WORK_HOURS.START_MINUTE !== savedConfig.startMinute) {
+                    CONFIG.WORK_HOURS.START_HOUR = savedConfig.startHour;
+                    CONFIG.WORK_HOURS.START_MINUTE = savedConfig.startMinute;
+                    configChanged = true;
+                }
             }
             
             if (typeof savedConfig.endHour === 'number' && typeof savedConfig.endMinute === 'number') {
-                CONFIG.WORK_HOURS.END_HOUR = savedConfig.endHour;
-                CONFIG.WORK_HOURS.END_MINUTE = savedConfig.endMinute;
+                if (CONFIG.WORK_HOURS.END_HOUR !== savedConfig.endHour || 
+                    CONFIG.WORK_HOURS.END_MINUTE !== savedConfig.endMinute) {
+                    CONFIG.WORK_HOURS.END_HOUR = savedConfig.endHour;
+                    CONFIG.WORK_HOURS.END_MINUTE = savedConfig.endMinute;
+                    configChanged = true;
+                }
             }
             
             // 更新午休设置
             if (typeof savedConfig.excludeBreakTime === 'boolean') {
-                CONFIG.EXCLUDE_BREAK_TIME = savedConfig.excludeBreakTime;
+                if (CONFIG.EXCLUDE_BREAK_TIME !== savedConfig.excludeBreakTime) {
+                    CONFIG.EXCLUDE_BREAK_TIME = savedConfig.excludeBreakTime;
+                    configChanged = true;
+                }
             }
             
-            console.log('配置已更新', savedConfig);
-            
-            // 更新UI
-            this.updateTimerUI();
-            
-            // 重新计算所有存在的工作记录
-            if (StatsController && typeof StatsController.recalculateAllStats === 'function') {
-                StatsController.recalculateAllStats();
+            // 只在配置有变化时执行更新
+            if (configChanged) {
+                console.log('配置已更新', {
+                    old: {
+                        standardHours: oldStandardHours,
+                        startHour: oldStartHour,
+                        startMinute: oldStartMinute,
+                        endHour: oldEndHour,
+                        endMinute: oldEndMinute,
+                        excludeBreakTime: oldExcludeBreakTime
+                    },
+                    new: savedConfig
+                });
+                
+                // 更新UI和计时器
+                this.updateTimerUI();
+                
+                // 重新计算所有存在的工作记录
+                if (StatsController && typeof StatsController.recalculateAllStats === 'function') {
+                    StatsController.recalculateAllStats();
+                }
             }
         }
     },
     
     /**
-     * 更新配置设置
+     * 更新计时器UI
+     * 在配置更新后调用，确保各种UI元素正确反映最新设置
      */
     updateTimerUI() {
-        // 更新UI
+        // 如果当前处于工作中状态，需要更新计时器和倒计时
+        if (this.workStatus === CONFIG.STATUS.WORKING && this.workStartTime) {
+            // 如果存在实际打卡时间
+            if (this.realClockInTime) {
+                const standardStartTime = new Date();
+                standardStartTime.setHours(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE, 0, 0);
+                
+                // 重新计算工作开始时间（如果实际打卡时间早于标准上班时间，则使用标准上班时间）
+                if (this.realClockInTime.getTime() < standardStartTime.getTime()) {
+                    console.log('实际打卡时间早于标准时间，调整工作开始时间');
+                    this.workStartTime = new Date(standardStartTime);
+                    // 保存到本地存储
+                    Store.saveWorkStartTime(this.workStartTime);
+                }
+            }
+            
+            // 停止计时器和倒计时，然后重新启动
+            this.stopTimer();
+            this.stopCountdown();
+            this.startTimer();
+            this.startCountdown();
+            
+            console.log('已重新启动计时器，使用新的工作时间设置');
+        } else if (this.workStatus === CONFIG.STATUS.COMPLETED && this.workStartTime && this.workEndTime) {
+            // 已下班状态，只需重新计算工作记录
+            console.log('正在重新计算已完成的工作记录');
+            this.recalculateWorkRecord();
+        }
+        
+        // 更新已经过的时间显示
         this.updateElapsedTime();
+        
+        // 确保整个UI都被更新，包括状态图标、按钮和计时器圆圈
+        if (UIController && typeof UIController.updateUIBasedOnWorkStatus === 'function') {
+            UIController.updateUIBasedOnWorkStatus();
+        }
     },
 }; 
