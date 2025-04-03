@@ -1782,15 +1782,15 @@ const StatsController = {
             `${attendanceDaysCount}天`;
         
         // 更新月图表，传递dailyWorkMap参数以确保使用动态计算的数据
-        this.updateMonthChart(monthRecords, dailyWorkMap);
+        this.calendarFix(monthRecords, dailyWorkMap);
     },
     
     /**
-     * 更新月图表显示
+     * 修复版的月图表显示函数
      * @param {Array} records - 月工作记录
      * @param {Map} dailyWorkMap - 按日期存储的工作数据Map，包含动态计算的工时
      */
-    updateMonthChart(records, dailyWorkMap) {
+    calendarFix(records, dailyWorkMap) {
         const chartEl = document.getElementById('stats-month-chart');
         
         // 获取当前日期信息
@@ -1894,7 +1894,7 @@ const StatsController = {
         weekdayHeaderContainer.className = 'grid grid-cols-7 gap-1.5 mb-2';
         
         // 添加星期几的标题（周日至周六）
-        const weekdays = ['日', '六', '一', '二', '三', '四', '五'];
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
         weekdays.forEach((day, index) => {
             const dayHeader = document.createElement('div');
             dayHeader.className = 'text-xs text-center font-medium';
@@ -2023,7 +2023,7 @@ const StatsController = {
             const handleThemeChange = () => {
                 console.log("主题变化检测：", darkModeMediaQuery.matches ? "暗色模式" : "浅色模式");
                 // 重新渲染日历
-                this.updateMonthChart(records, dailyWorkMap);
+                this.calendarFix(records, dailyWorkMap);
             };
             
             // 使用更现代的事件监听方式
