@@ -690,7 +690,7 @@ const StatsController = {
             const breakMinutesRemainder = breakMinutes % 60;
             
             // 显示标准工时信息，移除午休时间描述
-            standardTimeEl.innerHTML = `标准工时：${expectedDuration.hours}小时${expectedDuration.minutes > 0 ? expectedDuration.minutes + '分钟' : ''}`;
+            standardTimeEl.innerHTML = `统计工时：${expectedDuration.hours}小时${expectedDuration.minutes > 0 ? expectedDuration.minutes + '分钟' : ''}`;
         }
         
         // 更新时间线
@@ -731,8 +731,10 @@ const StatsController = {
             // 创建当前会话的记录对象
             const currentSession = {
                 type: 'current',
-                displayStartTime: TimerService.workStartTime,
+                // 优先使用realClockInTime作为显示时间
+                displayStartTime: TimerService.realClockInTime || TimerService.workStartTime,
                 startTime: TimerService.workStartTime.getTime(),
+                realStartTime: TimerService.realClockInTime ? TimerService.realClockInTime.getTime() : TimerService.workStartTime.getTime(),
                 status: CONFIG.STATUS.WORKING
             };
             
@@ -760,7 +762,8 @@ const StatsController = {
                     // 创建历史记录对象
                     const historySession = {
                         type: 'history',
-                        displayStartTime: new Date(record.startTime),
+                        // 优先使用真实打卡时间显示
+                        displayStartTime: record.realStartTime ? new Date(record.realStartTime) : new Date(record.startTime),
                         displayEndTime: new Date(record.endTime),
                         startTime: record.startTime,
                         endTime: record.endTime,

@@ -58,6 +58,19 @@ const UIController = {
         // 更新界面版本号
         this.updateAppVersion();
         
+        // 初始化主题
+        this.applyTheme();
+        
+        // 初始化字体大小
+        this.applyFontSize();
+        
+        // 确保初始化时强制更新打卡时间显示
+        setTimeout(() => {
+            if (TimerService && typeof TimerService.checkAndUpdateClockInDisplay === 'function') {
+                TimerService.checkAndUpdateClockInDisplay();
+            }
+        }, 100);
+        
         console.log('UI控制器初始化完成');
     },
     
@@ -228,6 +241,9 @@ const UIController = {
                 // 记录原始上班时间以便在统计中查找匹配记录
                 const originalStartTime = TimerService.workStartTime ? TimerService.workStartTime.getTime() : null;
                 
+                // 编辑后的时间一定是真实打卡时间
+                console.log('手动编辑上班时间为:', Utils.formatTime(newInTime));
+                
                 // 更新TimerService中的上班时间
                 TimerService.updateWorkStartTime(newInTime);
                 inTimeChanged = true;
@@ -278,11 +294,17 @@ const UIController = {
             
             // 更新UI显示
             if (TimerService.workStatus === CONFIG.STATUS.WORKING) {
-                if (TimerService.workStartTime) {
+                if (TimerService.realClockInTime) {
+                    // 优先使用真实打卡时间来更新UI
+                    this.updateClockInUI(TimerService.realClockInTime);
+                } else if (TimerService.workStartTime) {
                     this.updateClockInUI(TimerService.workStartTime);
                 }
             } else if (TimerService.workStatus === CONFIG.STATUS.COMPLETED) {
-                if (TimerService.workStartTime) {
+                if (TimerService.realClockInTime) {
+                    // 优先使用真实打卡时间来更新UI
+                    this.updateClockInUI(TimerService.realClockInTime);
+                } else if (TimerService.workStartTime) {
                     this.updateClockInUI(TimerService.workStartTime);
                 }
                 if (TimerService.workEndTime) {
@@ -352,7 +374,22 @@ const UIController = {
         const dateStr = Utils.formatDate(today);
         const todayRecords = Store.getDailyRecord(dateStr);
         
-        if (!todayRecords) return;
+        // 记录调试信息
+        console.log('更新今日历史工作记录:', todayRecords);
+        
+        if (!todayRecords) {
+            // 尝试从TimerService获取可能存在的当前会话数据
+            if (TimerService.workStartTime) {
+                console.log('从TimerService获取上班时间:', TimerService.workStartTime);
+                if (TimerService.realClockInTime) {
+                    this.elements.clockInTime.textContent = Utils.formatTime(TimerService.realClockInTime);
+                } else {
+                    this.elements.clockInTime.textContent = Utils.formatTime(TimerService.workStartTime);
+                }
+                document.getElementById('edit-clock-in-btn').classList.remove('hidden');
+            }
+            return;
+        }
         
         // 计算总工作时长
         const workDuration = TimerService.calculateTodayWorkDuration();
@@ -387,6 +424,10 @@ const UIController = {
             this.elements.clockInTime.textContent = Utils.formatTime(new Date(todayRecords.startTime));
             this.elements.clockOutTime.textContent = Utils.formatTime(new Date(todayRecords.endTime));
         }
+        
+        // 显示编辑按钮
+        document.getElementById('edit-clock-in-btn').classList.remove('hidden');
+        document.getElementById('edit-clock-out-btn').classList.remove('hidden');
     },
     
     /**
@@ -518,6 +559,16 @@ const UIController = {
         const workDuration = TimerService.calculateTodayWorkDuration();
         const hours = workDuration.hours + (workDuration.minutes / 60);
         
+        // 获取预期工作时长，以正确判断加班
+        const expectedDuration = TimerService.calculateExpectedWorkDuration();
+        const expectedHours = expectedDuration.hours + (expectedDuration.minutes / 60);
+        
+        console.log('计算工作时长和预期工作时长', {
+            currentHours: hours,
+            expectedHours: expectedHours,
+            excludeBreakTime: CONFIG.EXCLUDE_BREAK_TIME
+        });
+        
         // 移除所有可能的样式类
         this.elements.statusIcon.classList.remove(
             'working-status', 
@@ -557,32 +608,32 @@ const UIController = {
         );
         
         // 根据工作时长设置不同的样式
-        if (hours < CONFIG.WORK_HOURS.STANDARD_HOURS) {
+        if (hours < expectedHours) {
             // 正常工作时间，使用标准蓝色脉冲
             this.elements.statusIcon.classList.add('working-status');
             this.elements.statusText.classList.add('working-status');
             this.elements.timeDisplay.parentElement.classList.add('pulse-animation');
             this.elements.timeCircle.classList.add('border-primary');
-        } else if (hours >= CONFIG.WORK_HOURS.STANDARD_HOURS && hours < 9) {
-            // 8-9小时，使用淡红色（黄色）脉冲
+        } else if (hours >= expectedHours && hours < (expectedHours + 1)) {
+            // 加班1小时内，使用淡红色（黄色）脉冲
             this.elements.statusIcon.classList.add('overtime-working-status-1');
             this.elements.statusText.classList.add('overtime-working-status-1');
             this.elements.timeDisplay.parentElement.classList.add('overtime-pulse-animation-1');
             this.elements.timeCircle.classList.add('border-overtime-1');
-        } else if (hours >= 9 && hours < 10) {
-            // 9-10小时，使用淡红色脉冲
+        } else if (hours >= (expectedHours + 1) && hours < (expectedHours + 2)) {
+            // 加班1-2小时，使用淡红色脉冲
             this.elements.statusIcon.classList.add('overtime-working-status-2');
             this.elements.statusText.classList.add('overtime-working-status-2');
             this.elements.timeDisplay.parentElement.classList.add('overtime-pulse-animation-2');
             this.elements.timeCircle.classList.add('border-overtime-2');
-        } else if (hours >= 10 && hours < 12) {
-            // 10-12小时，使用红色脉冲
+        } else if (hours >= (expectedHours + 2) && hours < (expectedHours + 4)) {
+            // 加班2-4小时，使用红色脉冲
             this.elements.statusIcon.classList.add('overtime-working-status-3');
             this.elements.statusText.classList.add('overtime-working-status-3');
             this.elements.timeDisplay.parentElement.classList.add('overtime-pulse-animation-3');
             this.elements.timeCircle.classList.add('border-overtime-3');
         } else {
-            // 12小时以上，使用深红色脉冲
+            // 加班4小时以上，使用深红色脉冲
             this.elements.statusIcon.classList.add('overtime-working-status-4');
             this.elements.statusText.classList.add('overtime-working-status-4');
             this.elements.timeDisplay.parentElement.classList.add('overtime-pulse-animation-4');

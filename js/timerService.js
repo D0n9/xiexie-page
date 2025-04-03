@@ -29,6 +29,9 @@ const TimerService = {
         // 加载上次编辑的时间信息
         this.lastTimeEditInfo = Store.get(CONFIG.STORAGE_KEYS.TIME_EDITS) || null;
         
+        // 确保在页面加载时更新UI显示
+        this.checkAndUpdateClockInDisplay();
+        
         // 如果状态是工作中，但没有开始时间，重置状态
         if (this.workStatus === CONFIG.STATUS.WORKING && !this.workStartTime) {
             this.workStatus = CONFIG.STATUS.IDLE;
@@ -42,7 +45,52 @@ const TimerService = {
         // 每秒更新UI
         this.startTimeTracking();
         
+        // 注册localStorage事件监听
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'workStatus') {
+                console.log('检测到workStatus变化，重新加载工作状态');
+                this.loadWorkStatus();
+                this.checkAndUpdateClockInDisplay();
+            }
+        });
+        
         console.log('计时器服务初始化完成，当前状态:', this.workStatus);
+    },
+    
+    /**
+     * 检查并更新打卡显示时间
+     * 确保显示的是从localStorage获取的最新数据
+     */
+    checkAndUpdateClockInDisplay() {
+        // 强制从localStorage获取最新状态
+        const storedStatus = Store.getWorkStatus();
+        if (storedStatus) {
+            console.log('从Store获取的工作状态:', storedStatus);
+            
+            // 更新在UI Controller中的时间显示
+            const uiController = window.UIController || {};
+            if (uiController.elements && uiController.elements.clockInTime) {
+                // 优先使用真实打卡时间
+                if (storedStatus.realClockInTime) {
+                    const realClockInTime = new Date(storedStatus.realClockInTime);
+                    console.log('更新UI显示的真实打卡时间:', Utils.formatTime(realClockInTime));
+                    uiController.elements.clockInTime.textContent = Utils.formatTime(realClockInTime);
+                    
+                    // 显示编辑按钮
+                    const editBtn = document.getElementById('edit-clock-in-btn');
+                    if (editBtn) editBtn.classList.remove('hidden');
+                } else if (storedStatus.workStartTime) {
+                    // 兼容旧数据，如果没有realClockInTime就使用workStartTime
+                    const startTime = new Date(storedStatus.workStartTime);
+                    console.log('更新UI显示的打卡时间(兼容):', Utils.formatTime(startTime));
+                    uiController.elements.clockInTime.textContent = Utils.formatTime(startTime);
+                    
+                    // 显示编辑按钮
+                    const editBtn = document.getElementById('edit-clock-in-btn');
+                    if (editBtn) editBtn.classList.remove('hidden');
+                }
+            }
+        }
     },
     
     /**
@@ -60,9 +108,17 @@ const TimerService = {
         const endTimeStr = Store.get(CONFIG.STORAGE_KEYS.WORK_END_TIME, null);
         this.workEndTime = endTimeStr ? new Date(endTimeStr) : null;
         
-        // 加载实际打卡时间
+        // 加载实际打卡时间 - 确保从localStorage中获取
         const realClockInTimeStr = Store.get('realClockInTime', null);
         this.realClockInTime = realClockInTimeStr ? new Date(realClockInTimeStr) : null;
+        
+        // 如果没有实际打卡时间但有上班时间，则使用上班时间作为实际打卡时间（兼容旧数据）
+        if (!this.realClockInTime && this.workStartTime) {
+            console.log('未找到实际打卡时间，使用上班时间作为兼容:', Utils.formatTime(this.workStartTime));
+            this.realClockInTime = new Date(this.workStartTime);
+            // 保存以便下次不需要兼容处理
+            Store.saveRealClockInTime(this.realClockInTime);
+        }
         
         console.log('已加载工作状态:', { 
             workStatus: this.workStatus, 
@@ -120,10 +176,8 @@ const TimerService = {
      * 开始计时
      */
     startTimer() {
-        // 立即更新一次已经过的时间
-        const now = new Date();
-        const elapsed = now - this.workStartTime;
-        document.getElementById('time-display').textContent = Utils.formatDuration(elapsed);
+        // 立即更新一次已经过的时间，显示累计工作时长
+        this.updateElapsedTime();
         
         // 设置定时器，每秒更新一次
         this.timerId = setInterval(() => {
@@ -136,17 +190,61 @@ const TimerService = {
      */
     updateElapsedTime() {
         if (this.workStatus === CONFIG.STATUS.WORKING && this.workStartTime) {
-            // 工作中状态 - 计时器显示从打卡时间到现在的实际经过时间，不考虑午休时间
+            // 工作中状态 - 计时器显示当天所有工作时长的累计，包括历史记录和当前会话
+            // 获取当天总工作时长（不包括当前会话的秒级更新）
+            const totalWorkDuration = this.calculateTodayWorkDuration();
+            
+            // 将总工作时长转换为秒格式
+            let totalWorkSeconds = totalWorkDuration.hours * 3600 + totalWorkDuration.minutes * 60;
+            
+            // 为了实现秒的实时更新，需要计算当前会话的秒数部分
             const now = new Date();
-            const elapsedMs = now - this.workStartTime;
-            document.getElementById('time-display').textContent = Utils.formatDuration(elapsedMs);
+            
+            // 如果calculateTodayWorkDuration已经包含了当前会话的小时和分钟部分，
+            // 我们需要减去当前会话的分钟和小时，然后加上精确到秒的当前会话时长
+            
+            // 获取当前会话的起始时间，并计算精确到秒的经过时间
+            const currentSessionDateStr = Utils.formatDate(this.workStartTime);
+            const todayDateStr = Utils.formatDate(now);
+            
+            // 只有当当前会话是今天的时候才添加秒数
+            if (currentSessionDateStr === todayDateStr) {
+                // 获取所有历史记录(不包含当前会话)
+                const todayRecords = Store.getDailyRecord(todayDateStr);
+                
+                // 计算历史记录的总时长(分钟)
+                let historicalMinutes = 0;
+                if (todayRecords) {
+                    if (Array.isArray(todayRecords)) {
+                        todayRecords.forEach(record => {
+                            historicalMinutes += record.workHours * 60 + record.workMinutes;
+                        });
+                    } else {
+                        historicalMinutes = todayRecords.workHours * 60 + todayRecords.workMinutes;
+                    }
+                }
+                
+                // 将历史记录的分钟转换为秒
+                const historicalSeconds = historicalMinutes * 60;
+                
+                // 计算当前会话的精确秒数
+                const currentSessionSeconds = Math.floor((now - this.workStartTime) / 1000);
+                
+                // 总秒数 = 历史记录秒数 + 当前会话秒数
+                totalWorkSeconds = historicalSeconds + currentSessionSeconds;
+            }
+            
+            // 更新圆圈中的时间显示为总工作时长，包含秒数
+            const totalWorkMs = totalWorkSeconds * 1000;
+            document.getElementById('time-display').textContent = Utils.formatDuration(totalWorkMs);
         } else if (this.workStatus === CONFIG.STATUS.COMPLETED && this.workStartTime && this.workEndTime) {
-            // 已下班状态 - 计时器显示从上班到下班的实际经过时间，不考虑午休时间
-            const elapsedMs = this.workEndTime - this.workStartTime;
-            document.getElementById('time-display').textContent = Utils.formatDuration(elapsedMs);
+            // 已下班状态 - 显示当天所有工作记录的累计时间
+            const totalWorkDuration = this.calculateTodayWorkDuration();
+            let totalWorkMs = (totalWorkDuration.hours * 3600 + totalWorkDuration.minutes * 60) * 1000;
+            document.getElementById('time-display').textContent = Utils.formatDuration(totalWorkMs);
         } else {
             // 未上班状态 - 使用今日工时显示（如果有历史记录）
-            // 获取当天总工作时长（包括当前会话和历史记录）
+            // 获取当天总工作时长（包括历史记录）
             const totalWorkDuration = this.calculateTodayWorkDuration();
             
             // 将总工作时长转换为毫秒格式以用于显示（小时和分钟）
@@ -176,22 +274,26 @@ const TimerService = {
             this.resetWorkSession();
         }
         
-        // 保存实际打卡时间用于UI显示
+        // 保存实际打卡时间用于UI显示 - 总是使用真实打卡时间
         this.realClockInTime = new Date();
         
-        // 创建上班时间，使用标准上班时间
+        // 创建用于计算的上班时间，使用标准上班时间
         const today = new Date();
         this.workStartTime = new Date(today);
         this.workStartTime.setHours(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE, 0, 0);
         
-        // 如果实际打卡时间晚于标准上班时间，则使用实际打卡时间
+        // 如果实际打卡时间晚于标准上班时间，则计算也使用实际打卡时间
+        // 但如果早于标准上班时间，计算仍使用标准时间，UI显示使用实际时间
         if (this.realClockInTime > this.workStartTime) {
-            this.workStartTime = this.realClockInTime;
+            this.workStartTime = new Date(this.realClockInTime);
+            console.log('实际打卡时间晚于标准时间，使用实际时间进行计算');
+        } else {
+            console.log('实际打卡时间早于标准时间，UI显示实际时间，计算使用标准时间');
         }
         
         this.workStatus = CONFIG.STATUS.WORKING;
         
-        // 保存到本地存储
+        // 保存到本地存储 - 确保分别保存realClockInTime和workStartTime
         Store.saveWorkStartTime(this.workStartTime);
         Store.saveWorkStatus(this.workStatus);
         Store.saveRealClockInTime(this.realClockInTime);
@@ -664,17 +766,23 @@ const TimerService = {
      * @param {Date} newStartTime - 新的上班时间
      */
     updateWorkStartTime(newStartTime) {
-        // 在手动编辑时，同时更新 realClockInTime 和 workStartTime
+        // 在手动编辑时，将用户输入的时间保存为realClockInTime（真实打卡时间，用于UI显示）
         this.realClockInTime = new Date(newStartTime);
         
-        // 更新内存中的上班时间
+        // 真实打卡时间肯定要保存到Storage
+        Store.saveRealClockInTime(this.realClockInTime);
+        
+        // 更新内存中的上班时间（用于工时计算）
         // 如果编辑后的时间早于标准上班时间，使用标准上班时间作为计算依据
         const standardStartTime = new Date(newStartTime);
         standardStartTime.setHours(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE, 0, 0);
         
         if (newStartTime < standardStartTime) {
+            // 对于计算，使用标准时间
             this.workStartTime = standardStartTime;
+            console.log('编辑的时间早于标准上班时间，UI显示实际时间，计算使用标准时间');
         } else {
+            // 如果晚于标准时间，则实际和用于计算的时间一致
             this.workStartTime = new Date(newStartTime);
         }
         
@@ -709,155 +817,39 @@ const TimerService = {
     
     /**
      * 重新计算工作记录
-     * 在手动修改上班/下班时间后调用
+     * 当上下班时间被手动编辑后调用
      */
     recalculateWorkRecord() {
-        // 如果没有上班时间，无法计算
+        console.log('重新计算工作记录');
+        
         if (!this.workStartTime) return;
         
-        // 获取日期字符串（从上班时间获取）
-        const dateStr = Utils.formatDate(this.workStartTime);
+        // 获取日期
+        const date = new Date(this.workStartTime);
+        const dateStr = Utils.formatDate(date);
         
-        // 如果当前状态为已下班，且有下班时间，重新计算并保存记录
+        // 清除临时状态
+        this.lastTimeEditInfo = null;
+        
+        // 如果已下班，需要重新计算工作记录并保存
         if (this.workStatus === CONFIG.STATUS.COMPLETED && this.workEndTime) {
-            // 确保状态保存正确
-            Store.saveWorkStatus(this.workStatus);
-            
-            // 获取上下班时间之间的原始时间差
-            const rawDiff = Utils.calculateTimeDifference(this.workStartTime, this.workEndTime);
-            const rawTotalMinutes = rawDiff.hours * 60 + rawDiff.minutes;
-            
-            // 计算标准工作时长和上下班间隔中的午休时间
-            const expectedDuration = this.calculateExpectedWorkDuration();
-            const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
-            
-            // 从上下班设置计算实际上班下班之间的总时间（包含午休）
-            const startDate = new Date();
-            startDate.setHours(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE, 0, 0);
-            
-            const endDate = new Date();
-            endDate.setHours(CONFIG.WORK_HOURS.END_HOUR, CONFIG.WORK_HOURS.END_MINUTE, 0, 0);
-            
-            // 如果跨天，调整结束时间
-            if (endDate < startDate) {
-                endDate.setDate(endDate.getDate() + 1);
-            }
-            
-            // 计算标准上下班之间的总分钟数
-            const standardTotalDiff = Utils.calculateTimeDifference(startDate, endDate);
-            const standardTotalMinutes = standardTotalDiff.hours * 60 + standardTotalDiff.minutes;
-            
-            // 计算标准午休时间（分钟）
-            const standardBreakMinutes = standardTotalMinutes - expectedWorkMinutes;
-            
-            // 计算实际工作时间，根据用户设置决定是否从原始时间差中减去午休时间
-            let actualWorkMinutes = rawTotalMinutes;
-            
-            // 根据用户设置决定是否扣除午休时间
-            if (CONFIG.EXCLUDE_BREAK_TIME) {
-                // 只有当原始时间差超过标准午休时间，才减去午休时间
-                if (rawTotalMinutes > standardBreakMinutes) {
-                    actualWorkMinutes = rawTotalMinutes - standardBreakMinutes;
-                }
-            }
-            
-            // 转换为小时和分钟
-            const workHours = Math.floor(actualWorkMinutes / 60);
-            const workMinutes = actualWorkMinutes % 60;
-            
-            // 计算加班时间
-            let overtimeHours = 0;
-            let overtimeMinutes = 0;
-            
-            if (actualWorkMinutes > expectedWorkMinutes) {
-                const overtimeTotalMinutes = actualWorkMinutes - expectedWorkMinutes;
-                overtimeHours = Math.floor(overtimeTotalMinutes / 60);
-                overtimeMinutes = overtimeTotalMinutes % 60;
-            }
-            
-            // 创建工作记录
-            const record = {
-                // 如果是手动编辑，可能需要更新 realClockInTime
-                realStartTime: this.realClockInTime ? this.realClockInTime.getTime() : this.workStartTime.getTime(),
-                startTime: this.workStartTime.getTime(),
-                endTime: this.workEndTime.getTime(),
-                workHours: workHours,
-                workMinutes: workMinutes,
-                overtimeHours,
-                overtimeMinutes,
-                rawHours: rawDiff.hours,
-                rawMinutes: rawDiff.minutes,
-                breakMinutes: standardBreakMinutes,
-                excludedBreakTime: CONFIG.EXCLUDE_BREAK_TIME, // 记录当时的午休时间扣除设置
-                status: this.workStatus,
-                editedManually: true, // 标记为手动编辑
-                sessionId: Date.now() // 添加唯一会话ID，避免重复
-            };
-            
-            // 保存到本地存储
-            const todayRecords = Store.getDailyRecord(dateStr);
-            
-            if (todayRecords) {
-                if (Array.isArray(todayRecords)) {
-                    // 删除与当前会话有相同起止时间的记录
-                    const currentSessionStartTime = this.workStartTime.getTime();
-                    const currentSessionEndTime = this.workEndTime.getTime();
-                    
-                    // 过滤出不包含当前会话时间段的记录
-                    const filteredRecords = todayRecords.filter(rec => {
-                        // 比较开始和结束时间的接近程度
-                        // 如果两个记录的开始和结束时间都很接近，判定为同一会话的修改版本
-                        // 或者如果编辑后的时间段包含在原记录时间内，也可能是同一会话的编辑版本
-                        const sameStartTime = Math.abs(rec.startTime - currentSessionStartTime) < 5000; // 5秒容差
-                        const sameEndTime = Math.abs(rec.endTime - currentSessionEndTime) < 5000; // 5秒容差
-                        
-                        // 如果是明显同一会话的记录，就过滤掉
-                        return !(sameStartTime && sameEndTime);
-                    });
-                    
-                    // 添加新记录
-                    filteredRecords.push(record);
-                    
-                    // 按开始时间从新到旧排序
-                    filteredRecords.sort((a, b) => b.startTime - a.startTime);
-                    
-                    // 保存更新后的记录
-                    Store.save(CONFIG.STORAGE_KEYS.DAILY_RECORDS, {
-                        ...Store.getAllRecords(),
-                        [dateStr]: filteredRecords
-                    });
-                    
-                    console.log('更新工作记录，已过滤重复会话，新记录总数:', filteredRecords.length);
-                } else {
-                    // 单条记录情况，检查是否同一会话
-                    const sameStartTime = Math.abs(todayRecords.startTime - this.workStartTime.getTime()) < 5000;
-                    const sameEndTime = Math.abs(todayRecords.endTime - this.workEndTime.getTime()) < 5000;
-                    
-                    if (sameStartTime && sameEndTime) {
-                        // 同一会话，替换
-                        Store.save(CONFIG.STORAGE_KEYS.DAILY_RECORDS, {
-                            ...Store.getAllRecords(),
-                            [dateStr]: record
-                        });
-                    } else {
-                        // 不同会话，创建数组
-                        Store.save(CONFIG.STORAGE_KEYS.DAILY_RECORDS, {
-                            ...Store.getAllRecords(),
-                            [dateStr]: [todayRecords, record]
-                        });
-                    }
-                }
-            } else {
-                // 没有记录，直接保存
-                Store.saveDailyRecord(dateStr, record);
-            }
-            
-            // 更新UI显示
-            this.updateElapsedTime();
+            // 先删除当前记录，然后保存新记录
+            this.saveWorkRecord();
+            console.log('已重新计算和保存工作记录');
         } else if (this.workStatus === CONFIG.STATUS.WORKING) {
-            // 正在工作中状态下编辑时间，只需更新UI
-            this.updateElapsedTime();
+            // 如果是工作中状态，重置计时器
+            this.stopTimer();
+            this.startTimer();
+            console.log('已重置计时器');
         }
+        
+        // 确保保存真实打卡时间
+        if (this.realClockInTime) {
+            Store.saveRealClockInTime(this.realClockInTime);
+        }
+        
+        // 更新配置
+        this.updateConfigSettings();
     },
     
     /**
@@ -922,8 +914,50 @@ const TimerService = {
      * @returns {Object} 工作时长对象，包含小时和分钟
      */
     calculateExpectedWorkDuration() {
+        // 基本工作时长(8小时)
+        const standardHours = CONFIG.STANDARD_WORK_HOURS;
+        
+        // 如果不扣除午休时间，应该增加午休时间作为预期工作时长
+        if (!CONFIG.EXCLUDE_BREAK_TIME) {
+            // 计算标准午休时间
+            // 从上下班设置计算实际上班下班之间的总时间（包含午休）
+            const startDate = new Date();
+            startDate.setHours(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE, 0, 0);
+            
+            const endDate = new Date();
+            endDate.setHours(CONFIG.WORK_HOURS.END_HOUR, CONFIG.WORK_HOURS.END_MINUTE, 0, 0);
+            
+            // 如果跨天，调整结束时间
+            if (endDate < startDate) {
+                endDate.setDate(endDate.getDate() + 1);
+            }
+            
+            // 计算标准上下班之间的总分钟数
+            const standardTotalDiff = Utils.calculateTimeDifference(startDate, endDate);
+            const standardTotalMinutes = standardTotalDiff.hours * 60 + standardTotalDiff.minutes;
+            
+            // 计算工作时长包含午休（总分钟数 = 标准工作分钟数 + 午休分钟数）
+            const standardWorkMinutes = standardHours * 60;
+            const standardBreakMinutes = standardTotalMinutes - standardWorkMinutes;
+            
+            console.log('扣除午休开关关闭，预期工作时长增加午休时间', {
+                standardHours,
+                standardWorkMinutes,
+                standardBreakMinutes,
+                newExpectedMinutes: standardWorkMinutes + standardBreakMinutes
+            });
+            
+            // 增加午休时间到预期工作时长
+            const totalExpectedMinutes = standardWorkMinutes + standardBreakMinutes;
+            return {
+                hours: Math.floor(totalExpectedMinutes / 60),
+                minutes: totalExpectedMinutes % 60
+            };
+        }
+        
+        // 如果扣除午休时间，直接返回标准工作时长
         return {
-            hours: CONFIG.STANDARD_WORK_HOURS,
+            hours: standardHours,
             minutes: 0
         };
     },

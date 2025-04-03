@@ -78,11 +78,14 @@ const Store = {
     },
     
     /**
-     * 保存实际打卡时间
-     * @param {Date} time - 实际打卡时间
+     * 保存真实打卡时间
+     * @param {Date} realClockInTime - 真实的打卡时间
      */
-    saveRealClockInTime(time) {
-        this.save('realClockInTime', time.getTime());
+    saveRealClockInTime(realClockInTime) {
+        if (realClockInTime) {
+            this.save('realClockInTime', realClockInTime.toISOString());
+            console.log('已保存真实打卡时间:', Utils.formatTime(realClockInTime));
+        }
     },
     
     /**
@@ -116,56 +119,25 @@ const Store = {
      * @param {string} status - 工作状态
      */
     saveWorkStatus(status) {
-        console.log('保存工作状态:', status);
-        try {
-            const serializedValue = JSON.stringify(status);
-            console.log('序列化后的状态值:', serializedValue);
-            localStorage.setItem(CONFIG.STORAGE_KEYS.WORK_STATUS, serializedValue);
-            
-            // 验证保存是否成功
-            const savedValue = localStorage.getItem(CONFIG.STORAGE_KEYS.WORK_STATUS);
-            console.log('保存后立即获取的状态值:', savedValue);
-        } catch (error) {
-            console.error('保存工作状态时出错:', error);
-        }
+        this.save(CONFIG.STORAGE_KEYS.WORK_STATUS, status);
     },
     
     /**
-     * 获取工作状态
-     * @returns {string} 工作状态
+     * 获取工作状态（包括状态和时间）
+     * @returns {Object} 工作状态对象
      */
     getWorkStatus() {
-        const serializedValue = localStorage.getItem(CONFIG.STORAGE_KEYS.WORK_STATUS);
-        console.log('原始存储的工作状态值:', serializedValue);
+        const status = this.get(CONFIG.STORAGE_KEYS.WORK_STATUS, CONFIG.STATUS.IDLE);
+        const startTimeStr = this.get(CONFIG.STORAGE_KEYS.WORK_START_TIME, null);
+        const endTimeStr = this.get(CONFIG.STORAGE_KEYS.WORK_END_TIME, null);
+        const realClockInTimeStr = this.get('realClockInTime', null);
         
-        try {
-            if (serializedValue === null) {
-                console.log('未找到工作状态，返回默认值:', CONFIG.STATUS.IDLE);
-                return CONFIG.STATUS.IDLE;
-            }
-            
-            // 特殊处理：如果存储的值不是JSON对象（例如纯字符串）
-            if (serializedValue.startsWith('"') && serializedValue.endsWith('"')) {
-                // 这是一个JSON字符串表示的字符串，需要解析
-                const parsedValue = JSON.parse(serializedValue);
-                console.log('解析后的工作状态:', parsedValue);
-                return parsedValue;
-            } else if (serializedValue === 'completed' || 
-                      serializedValue === 'working' || 
-                      serializedValue === 'idle') {
-                // 处理未被正确JSON化的值
-                console.log('发现未JSON化的状态值，直接使用:', serializedValue);
-                return serializedValue;
-            }
-            
-            // 正常JSON解析
-            const parsedValue = JSON.parse(serializedValue);
-            console.log('正常解析后的工作状态:', parsedValue);
-            return parsedValue;
-        } catch (error) {
-            console.error('获取工作状态时出错:', error, '返回默认值:', CONFIG.STATUS.IDLE);
-            return CONFIG.STATUS.IDLE;
-        }
+        return {
+            workStatus: status,
+            workStartTime: startTimeStr,
+            workEndTime: endTimeStr,
+            realClockInTime: realClockInTimeStr
+        };
     },
     
     /**
@@ -345,6 +317,9 @@ const Store = {
             // 将当前会话添加到结果中
             const todayDate = new Date(todayStr);
             if (todayStr >= startDateStr && todayStr <= endDateStr) {
+                // 获取真实打卡时间
+                const realClockInTime = this.getRealClockInTime();
+                
                 result.push({
                     date: todayStr,
                     workHours,
@@ -352,6 +327,8 @@ const Store = {
                     overtimeHours,
                     overtimeMinutes,
                     startTime: workStartTime.getTime(),
+                    // 添加真实打卡时间，优先使用realClockInTime，如果没有则使用workStartTime
+                    realStartTime: realClockInTime ? realClockInTime.getTime() : workStartTime.getTime(),
                     endTime: workEndTime.getTime(),
                     status: CONFIG.STATUS.COMPLETED
                 });
