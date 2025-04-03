@@ -1625,6 +1625,17 @@ const StatsController = {
                 // 获取该日期的完整工时记录
                 const dateObj = new Date(date);
                 const dateStr = Utils.formatDate(dateObj);
+                
+                // 添加调试日志
+                console.log('处理日期记录:', {
+                    originalDate: date,
+                    dateObj: dateObj,
+                    dateStr: dateStr,
+                    month: dateObj.getMonth() + 1,
+                    year: dateObj.getFullYear(),
+                    day: dateObj.getDate()
+                });
+                
                 const todayRecords = Store.getDailyRecord(dateStr);
                 
                 if (todayRecords) {
@@ -1813,7 +1824,7 @@ const StatsController = {
         // 获取当月第一天是星期几（0是周日，6是周六）
         const firstDayOfMonth = new Date(viewYear, viewMonth, 1).getDay();
         
-        // 获取当月的总天数
+        // 获取当月的总天数 - 修正获取月份天数的方法
         const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
         
         // 添加调试日志
@@ -1834,7 +1845,20 @@ const StatsController = {
             const date = new Date(year, month, day);
             const dateStr = Utils.formatDate(date);
             const dayData = dailyWorkMap.get(dateStr);
-            return dayData ? dayData.workMinutes : 0;
+            const workMinutes = dayData ? dayData.workMinutes : 0;
+            
+            // 添加日期查询调试日志
+            if (workMinutes > 0 || day === daysInMonth) {
+                console.log('查询日期工时:', {
+                    dateStr,
+                    year,
+                    month: month + 1,
+                    day,
+                    workMinutes
+                });
+            }
+            
+            return workMinutes;
         };
         
         // 检查是否是暗黑模式

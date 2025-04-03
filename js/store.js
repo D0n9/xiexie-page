@@ -223,29 +223,56 @@ const Store = {
     },
     
     /**
-     * 获取指定时间范围内的工作记录
+     * 获取指定日期范围内的工作记录
      * @param {Date} startDate - 开始日期
      * @param {Date} endDate - 结束日期
-     * @returns {Array} 符合条件的工作记录数组
+     * @returns {Array} 指定日期范围内的工作记录数组
      */
     getRecordsInRange(startDate, endDate) {
+        console.log('获取日期范围记录:', { 
+            startDate, 
+            endDate,
+            startDateStr: Utils.formatDate(startDate),
+            endDateStr: Utils.formatDate(endDate) 
+        });
+        
+        // 确保日期对象有效
+        if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+            console.error('日期参数无效:', { startDate, endDate });
+            return [];
+        }
+        
+        // 格式化日期范围为字符串，便于查询
+        const startDateStr = Utils.formatDate(startDate);
+        const endDateStr = Utils.formatDate(endDate);
+        
+        // 获取所有记录
         const allRecords = this.getAllRecords();
         const result = [];
         
+        // 遍历所有日期的记录，找出在范围内的
         for (const dateStr in allRecords) {
-            const recordDate = new Date(dateStr);
-            if (recordDate >= startDate && recordDate <= endDate) {
-                // 修改: 检查是否有当天记录且是否为数组
+            // 确保日期格式正确
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                console.warn('跳过无效日期格式:', dateStr);
+                continue;
+            }
+            
+            // 比较日期字符串，检查是否在范围内
+            if (dateStr >= startDateStr && dateStr <= endDateStr) {
                 const dateRecord = allRecords[dateStr];
                 
+                // 添加到结果集
                 if (Array.isArray(dateRecord)) {
-                    // 如果是数组，作为单个条目添加，保留原始数组结构
-                    result.push({
-                        date: dateStr,
-                        records: dateRecord // 保存完整的记录数组
+                    // 如果是数组，添加每条记录
+                    dateRecord.forEach(record => {
+                        result.push({
+                            date: dateStr,
+                            ...record
+                        });
                     });
-                } else {
-                    // 单条记录，按原方式添加
+                } else if (dateRecord) {
+                    // 如果是单条记录，直接添加
                     result.push({
                         date: dateStr,
                         ...dateRecord
@@ -317,7 +344,7 @@ const Store = {
             
             // 将当前会话添加到结果中
             const todayDate = new Date(todayStr);
-            if (todayDate >= startDate && todayDate <= endDate) {
+            if (todayStr >= startDateStr && todayStr <= endDateStr) {
                 result.push({
                     date: todayStr,
                     workHours,
@@ -370,15 +397,20 @@ const Store = {
      * @returns {Array} 指定月份的工作记录数组
      */
     getMonthRecordsByDate(date) {
+        console.log('获取月份记录:', date);
+        
         // 创建所选月份的第一天
         const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
         
-        // 创建所选月份的最后一天
-        const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        // 创建所选月份的最后一天 - 通过获取下个月的第0天（即当前月的最后一天）
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
         
-        // 确保不超过今天的日期
-        const today = new Date();
-        const monthEnd = nextMonth > today ? today : nextMonth;
+        console.log('月份范围:', { 
+            startDate: monthStart, 
+            endDate: monthEnd,
+            startDateStr: Utils.formatDate(monthStart),
+            endDateStr: Utils.formatDate(monthEnd)
+        });
         
         // 如果是当前月，调用getMonthRecords
         const currentMonth = new Date().getMonth();
