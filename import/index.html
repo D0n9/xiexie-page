@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辛苦我了 - 历史数据导入工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="mb-8">
+            <div class="flex justify-center items-center mb-2">
+                <a href="../index.html" class="text-indigo-600 dark:text-indigo-400 mr-2 hover:underline">
+                    <i class="ri-arrow-left-line"></i> 返回应用
+                </a>
+                <h1 class="text-3xl font-bold text-center">历史数据导入工具</h1>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400 text-center">为"辛苦我了"应用导入历史工作记录</p>
+        </header>
+
+        <main>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">添加工作记录</h2>
+                <form id="record-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="date" class="block text-sm font-medium mb-1">日期</label>
+                            <input type="date" id="date" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="start-time" class="block text-sm font-medium mb-1">上班时间</label>
+                            <input type="time" id="start-time" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="end-time" class="block text-sm font-medium mb-1">下班时间</label>
+                            <input type="time" id="end-time" class="form-input" required>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md transition">
+                            添加记录
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">待导入记录</h2>
+                    <div class="space-x-2">
+                        <button id="import-btn" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition">
+                            导入全部
+                        </button>
+                        <button id="clear-btn" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md transition">
+                            清空列表
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white dark:bg-gray-800">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-gray-700">
+                                <th class="py-3 px-4 text-left">日期</th>
+                                <th class="py-3 px-4 text-left">上班时间</th>
+                                <th class="py-3 px-4 text-left">下班时间</th>
+                                <th class="py-3 px-4 text-left">工作时长</th>
+                                <th class="py-3 px-4 text-left">加班时长</th>
+                                <th class="py-3 px-4 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-list">
+                            <!-- 动态生成的记录行 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="no-records" class="text-center py-6 text-gray-500 dark:text-gray-400">
+                    暂无待导入的记录
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">导入结果</h2>
+                <div id="import-result" class="text-center py-6 text-gray-500 dark:text-gray-400">
+                    尚未执行导入操作
+                </div>
+            </div>
+        </main>
+        
+        <footer class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p>辛苦我了 &middot; 历史数据导入工具</p>
+        </footer>
+    </div>
+
+    <!-- 配置脚本 -->
+    <script>
+        // 应用配置
+        const CONFIG = {
+            // 工作时间相关配置
+            WORK_HOURS: {
+                STANDARD_HOURS: 8, // 标准工作时间（小时）
+                START_HOUR: 9,     // 标准上班时间（小时）
+                START_MINUTE: 0,   // 标准上班时间（分钟）
+                END_HOUR: 18,      // 标准下班时间（小时）
+                END_MINUTE: 0      // 标准下班时间（分钟）
+            },
+            
+            // 本地存储键名
+            STORAGE_KEYS: {
+                DAILY_RECORDS: 'dailyRecords',
+                WORK_STATUS: 'workStatus'
+            },
+            
+            // 工作状态枚举
+            STATUS: {
+                COMPLETED: 2
+            },
+            
+            // 是否在工时计算中扣除午休时间
+            EXCLUDE_BREAK_TIME: true,
+        };
+    </script>
+
+    <!-- 工具函数脚本 -->
+    <script>
+        const Utils = {
+            /**
+             * 格式化日期为 YYYY-MM-DD 格式
+             * @param {Date} date - 日期对象
+             * @returns {string} 格式化后的日期字符串
+             */
+            formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            },
+            
+            /**
+             * 计算两个日期之间的时间差（小时、分钟和秒）
+             * @param {Date} startDate - 开始日期
+             * @param {Date} endDate - 结束日期
+             * @returns {Object} 包含小时、分钟和秒的对象
+             */
+            calculateTimeDifference(startDate, endDate) {
+                const diffMs = endDate - startDate;
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+                
+                return {
+                    hours: diffHours,
+                    minutes: diffMinutes,
+                    seconds: diffSeconds,
+                    totalMinutes: diffHours * 60 + diffMinutes,
+                    milliseconds: diffMs
+                };
+            },
+            
+            /**
+             * 格式化工作时长
+             * @param {number} hours - 小时数
+             * @param {number} minutes - 分钟数
+             * @returns {string} 格式化后的工作时长字符串
+             */
+            formatWorkDuration(hours, minutes) {
+                if (hours === 0 && minutes === 0) return '0小时0分钟';
+                return `${hours}小时${minutes > 0 ? minutes + '分钟' : ''}`;
+            }
+        };
+    </script>
+
+    <!-- 主脚本 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化日期为今天
+            document.getElementById('date').valueAsDate = new Date();
+            
+            // 记录列表
+            let records = [];
+            
+            // 表单提交处理
+            document.getElementById('record-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                // 获取表单数据
+                const dateInput = document.getElementById('date').value;
+                const startTimeInput = document.getElementById('start-time').value;
+                const endTimeInput = document.getElementById('end-time').value;
+                
+                // 创建日期对象
+                const date = new Date(dateInput);
+                const dateStr = Utils.formatDate(date);
+                
+                // 创建上班时间对象
+                const [startHour, startMinute] = startTimeInput.split(':').map(Number);
+                const startDate = new Date(date);
+                startDate.setHours(startHour, startMinute, 0, 0);
+                
+                // 创建下班时间对象
+                const [endHour, endMinute] = endTimeInput.split(':').map(Number);
+                const endDate = new Date(date);
+                endDate.setHours(endHour, endMinute, 0, 0);
+                
+                // 如果下班时间小于上班时间，认为是第二天
+                if (endDate < startDate) {
+                    endDate.setDate(endDate.getDate() + 1);
+                }
+                
+                // 计算工作时长
+                const rawDiff = Utils.calculateTimeDifference(startDate, endDate);
+                const rawTotalMinutes = rawDiff.hours * 60 + rawDiff.minutes;
+                
+                // 计算标准工作时间（分钟）
+                const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                
+                // 从上下班设置计算实际上班下班之间的总时间（包含午休）
+                const standardStartDate = new Date(date);
+                standardStartDate.setHours(CONFIG.WORK_HOURS.START_HOUR, CONFIG.WORK_HOURS.START_MINUTE, 0, 0);
+                
+                const standardEndDate = new Date(date);
+                standardEndDate.setHours(CONFIG.WORK_HOURS.END_HOUR, CONFIG.WORK_HOURS.END_MINUTE, 0, 0);
+                
+                // 如果标准下班时间小于标准上班时间，认为是第二天
+                if (standardEndDate < standardStartDate) {
+                    standardEndDate.setDate(standardEndDate.getDate() + 1);
+                }
+                
+                // 计算标准上下班之间的总分钟数
+                const standardTotalDiff = Utils.calculateTimeDifference(standardStartDate, standardEndDate);
+                const standardTotalMinutes = standardTotalDiff.hours * 60 + standardTotalDiff.minutes;
+                
+                // 计算午休时间（分钟）
+                const standardBreakMinutes = standardTotalMinutes - expectedWorkMinutes;
+                
+                // 计算实际工作时间，根据用户设置决定是否从原始时间差中减去午休时间
+                let actualWorkMinutes = rawTotalMinutes;
+                
+                // 根据用户设置决定是否扣除午休时间
+                if (CONFIG.EXCLUDE_BREAK_TIME) {
+                    // 只有当原始时间差超过午休时间，才减去午休时间
+                    if (rawTotalMinutes > standardBreakMinutes) {
+                        actualWorkMinutes = rawTotalMinutes - standardBreakMinutes;
+                    }
+                }
+                
+                // 转换为小时和分钟
+                const workHours = Math.floor(actualWorkMinutes / 60);
+                const workMinutes = actualWorkMinutes % 60;
+                
+                // 计算加班时间
+                let overtimeHours = 0;
+                let overtimeMinutes = 0;
+                
+                if (actualWorkMinutes > expectedWorkMinutes) {
+                    const overtimeTotalMinutes = actualWorkMinutes - expectedWorkMinutes;
+                    overtimeHours = Math.floor(overtimeTotalMinutes / 60);
+                    overtimeMinutes = overtimeTotalMinutes % 60;
+                }
+                
+                // 创建工作记录
+                const record = {
+                    date: dateStr,
+                    startTime: startDate.getTime(),
+                    endTime: endDate.getTime(),
+                    workHours,
+                    workMinutes,
+                    overtimeHours,
+                    overtimeMinutes,
+                    rawHours: rawDiff.hours,
+                    rawMinutes: rawDiff.minutes,
+                    breakMinutes: standardBreakMinutes,
+                    excludedBreakTime: CONFIG.EXCLUDE_BREAK_TIME,
+                    status: CONFIG.STATUS.COMPLETED,
+                    sessionId: Date.now() // 添加唯一会话ID
+                };
+                
+                // 添加到记录列表
+                records.push(record);
+                
+                // 更新UI
+                updateRecordsList();
+                
+                // 重置表单
+                document.getElementById('start-time').value = '';
+                document.getElementById('end-time').value = '';
+                document.getElementById('start-time').focus();
+            });
+            
+            // 更新记录列表UI
+            function updateRecordsList() {
+                const recordsList = document.getElementById('records-list');
+                const noRecords = document.getElementById('no-records');
+                
+                // 清空现有内容
+                recordsList.innerHTML = '';
+                
+                if (records.length === 0) {
+                    noRecords.style.display = 'block';
+                    return;
+                }
+                
+                noRecords.style.display = 'none';
+                
+                // 按日期排序
+                records.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                // 为每条记录创建行
+                records.forEach((record, index) => {
+                    const row = document.createElement('tr');
+                    row.className = index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700';
+                    
+                    const dateCell = document.createElement('td');
+                    dateCell.className = 'py-3 px-4';
+                    dateCell.textContent = record.date;
+                    
+                    const startTimeCell = document.createElement('td');
+                    startTimeCell.className = 'py-3 px-4';
+                    startTimeCell.textContent = new Date(record.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    const endTimeCell = document.createElement('td');
+                    endTimeCell.className = 'py-3 px-4';
+                    endTimeCell.textContent = new Date(record.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    const workDurationCell = document.createElement('td');
+                    workDurationCell.className = 'py-3 px-4';
+                    workDurationCell.textContent = Utils.formatWorkDuration(record.workHours, record.workMinutes);
+                    
+                    const overtimeCell = document.createElement('td');
+                    overtimeCell.className = 'py-3 px-4';
+                    overtimeCell.textContent = Utils.formatWorkDuration(record.overtimeHours, record.overtimeMinutes);
+                    
+                    const actionsCell = document.createElement('td');
+                    actionsCell.className = 'py-3 px-4 text-center';
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'text-red-600 hover:text-red-800';
+                    deleteButton.innerHTML = '<i class="ri-delete-bin-line"></i>';
+                    deleteButton.onclick = () => deleteRecord(index);
+                    
+                    actionsCell.appendChild(deleteButton);
+                    
+                    row.appendChild(dateCell);
+                    row.appendChild(startTimeCell);
+                    row.appendChild(endTimeCell);
+                    row.appendChild(workDurationCell);
+                    row.appendChild(overtimeCell);
+                    row.appendChild(actionsCell);
+                    
+                    recordsList.appendChild(row);
+                });
+            }
+            
+            // 删除记录
+            function deleteRecord(index) {
+                records.splice(index, 1);
+                updateRecordsList();
+            }
+            
+            // 清空列表
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                if (records.length === 0) return;
+                
+                if (confirm('确定要清空所有待导入记录吗？')) {
+                    records = [];
+                    updateRecordsList();
+                }
+            });
+            
+            // 导入记录
+            document.getElementById('import-btn').addEventListener('click', () => {
+                if (records.length === 0) {
+                    alert('没有待导入的记录');
+                    return;
+                }
+                
+                // 尝试导入记录
+                try {
+                    // 从localStorage获取现有记录
+                    let existingRecordsRaw = localStorage.getItem(CONFIG.STORAGE_KEYS.DAILY_RECORDS);
+                    let dailyRecords = existingRecordsRaw ? JSON.parse(existingRecordsRaw) : {};
+                    
+                    // 记录每个日期导入的条数
+                    const importCounts = {};
+                    
+                    // 处理每条记录
+                    records.forEach(record => {
+                        const dateStr = record.date;
+                        
+                        // 初始化计数
+                        if (!importCounts[dateStr]) {
+                            importCounts[dateStr] = 0;
+                        }
+                        
+                        // 如果日期不存在，创建新数组
+                        if (!dailyRecords[dateStr]) {
+                            dailyRecords[dateStr] = [];
+                        } 
+                        // 如果不是数组，转换为数组
+                        else if (!Array.isArray(dailyRecords[dateStr])) {
+                            dailyRecords[dateStr] = [dailyRecords[dateStr]];
+                        }
+                        
+                        // 添加记录到数组
+                        dailyRecords[dateStr].push(record);
+                        importCounts[dateStr]++;
+                    });
+                    
+                    // 保存回localStorage
+                    localStorage.setItem(CONFIG.STORAGE_KEYS.DAILY_RECORDS, JSON.stringify(dailyRecords));
+                    
+                    // 显示导入结果
+                    const importResult = document.getElementById('import-result');
+                    importResult.innerHTML = `
+                        <div class="text-green-600 dark:text-green-400 mb-2">
+                            <i class="ri-check-line text-xl"></i> 成功导入 ${records.length} 条记录!
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            详细信息：<br>
+                            ${Object.entries(importCounts).map(([date, count]) => 
+                                `${date}: 导入 ${count} 条记录`
+                            ).join('<br>')}
+                        </div>
+                    `;
+                    
+                    // 清空记录列表
+                    records = [];
+                    updateRecordsList();
+                    
+                } catch (error) {
+                    // 显示错误
+                    const importResult = document.getElementById('import-result');
+                    importResult.innerHTML = `
+                        <div class="text-red-600 dark:text-red-400">
+                            <i class="ri-error-warning-line text-xl"></i> 导入失败: ${error.message}
+                        </div>
+                    `;
+                    console.error('导入失败:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

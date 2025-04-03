@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="bg-white dark:bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>辛苦我了</title>
+    
+    <!-- iOS/PWA 支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="辛苦我了">
+    
+    <!-- Android PWA 支持 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="辛苦我了">
+    <meta name="theme-color" content="#6366F1" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="简单高效的工时记录与统计应用">
+    
+    <!-- 响应式设计增强 -->
+    <meta name="HandheldFriendly" content="true">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="MobileOptimized" content="width">
+    
+    <!-- iOS 图标 -->
+    <link rel="apple-touch-icon" href="assets/app-icon-180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="assets/app-icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/app-icon-180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="assets/app-icon-167.png">
+    
+    <!-- 启动屏幕 -->
+    <link rel="apple-touch-startup-image" href="assets/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-1668x2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-1668x2224.png" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-1536x2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="assets/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    
+    <!-- 引入样式文件 -->
+    <link href="css/styles.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- Chart.js 图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- 禁用页面缩放和弹性滚动效果，更像原生应用 -->
+    <style>
+        html, body {
+            overscroll-behavior: none;
+            touch-action: manipulation;
+            -webkit-overflow-scrolling: touch;
+            -webkit-tap-highlight-color: transparent;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            position: fixed;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+        }
+        #app-container {
+            height: 100%;
+            width: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) 
+                    env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+        }
+        @media (min-width: 768px) {
+            body {
+                background-color: #f3f4f6;
+            }
+            #app {
+                margin-top: 1rem;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                max-width: 500px !important;
+            }
+        }
+        @media (max-width: 360px) {
+            .text-xl {
+                font-size: 1.1rem;
+            }
+            .text-lg {
+                font-size: 1rem;
+            }
+            .p-4 {
+                padding: 0.75rem;
+            }
+        }
+        input, button, select {
+            font-size: 16px; /* 防止iOS缩放 */
+        }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'media', // 使用系统偏好自动切换暗黑模式
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#EC4899',
+                        dark: '#111827',
+                        light: '#F9FAFB'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="dark:text-gray-100">
+    <div id="app-container" class="bg-white dark:bg-gray-900">
+        <div id="app" class="max-w-md mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+            <!-- Header -->
+            <header class="bg-gradient-to-r from-primary to-secondary text-white p-4">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-xl font-bold">辛苦我了 🐱</h1>
+                    <div class="flex items-center space-x-2">
+                        <span id="current-date" class="text-sm opacity-80"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="p-4">
+                <!-- Tab buttons -->
+                <div class="tab-buttons flex overflow-x-auto bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mb-4 shadow-inner">
+                    <button id="tab-checkin" class="tab-btn flex-1 py-2 px-4 text-center text-sm font-medium transition-all duration-200 rounded-md active bg-white dark:bg-gray-800 text-primary">
+                        <i class="ri-timer-line mr-1"></i>打卡
+                    </button>
+                    <button id="tab-stats" class="tab-btn flex-1 py-2 px-4 text-center text-sm font-medium transition-all duration-200 rounded-md text-gray-600 dark:text-gray-300">
+                        <i class="ri-bar-chart-box-line mr-1"></i>统计
+                    </button>
+                    <button id="tab-settings" class="tab-btn flex-1 py-2 px-4 text-center text-sm font-medium transition-all duration-200 rounded-md text-gray-600 dark:text-gray-300">
+                        <i class="ri-settings-line mr-1"></i>设置
+                    </button>
+                </div>
+
+                <!-- Tab contents -->
+                <div id="checkin-content" class="tab-content transition-all duration-200 transform opacity-100 scale-100">
+                    <!-- Record Section -->
+                    <div class="text-center mb-6">
+                        <div class="mx-auto w-56 h-56 rounded-full border-8 border-primary bg-white dark:bg-gray-800 flex flex-col items-center justify-center mb-4 relative">
+                            <div id="status-icon" class="text-5xl text-primary mb-2">
+                                <i class="ri-briefcase-line"></i>
+                            </div>
+                            <div id="status-text" class="text-lg font-bold text-gray-800 dark:text-gray-200">等待打卡</div>
+                            <div id="time-display" class="text-3xl font-bold text-gray-900 dark:text-white mt-1">00:00:00</div>
+                        </div>
+                        
+                        <div class="flex space-x-4 justify-center">
+                            <button id="clock-in-btn" class="px-6 py-2 bg-primary text-white rounded-full shadow-md hover:bg-indigo-600 transition flex items-center">
+                                <i class="ri-login-circle-line mr-1"></i>上班
+                            </button>
+                            <button id="clock-out-btn" class="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full shadow-md hover:bg-gray-400 dark:hover:bg-gray-500 transition flex items-center disabled:opacity-50" disabled>
+                                <i class="ri-logout-circle-line mr-1"></i>下班
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Today's Record -->
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 flex items-center">
+                                <i class="ri-calendar-check-line mr-2 text-primary"></i>今日工时
+                            </h3>
+                            <button id="save-time-edits-btn" class="text-sm bg-primary text-white px-2 py-1 rounded hidden">
+                                <i class="ri-save-line mr-1"></i>保存修改
+                            </button>
+                        </div>
+                        <div id="today-record" class="text-gray-600 dark:text-gray-300">
+                            <div class="flex justify-between items-center mb-1">
+                                <span>上班时间:</span>
+                                <div class="flex items-center">
+                                    <span id="clock-in-time" class="font-medium">未打卡</span>
+                                    <button id="edit-clock-in-btn" class="ml-2 text-gray-500 hover:text-primary edit-time-btn" title="编辑上班时间">
+                                        <i class="ri-edit-line"></i>
+                                    </button>
+                                    <div id="clock-in-edit-container" class="hidden ml-2">
+                                        <input type="time" id="clock-in-time-input" class="border rounded px-2 py-1 w-32 text-sm" step="1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span>下班时间:</span>
+                                <div class="flex items-center">
+                                    <span id="clock-out-time" class="font-medium">未打卡</span>
+                                    <button id="edit-clock-out-btn" class="ml-2 text-gray-500 hover:text-primary edit-time-btn" title="编辑下班时间">
+                                        <i class="ri-edit-line"></i>
+                                    </button>
+                                    <div id="clock-out-edit-container" class="hidden ml-2">
+                                        <input type="time" id="clock-out-time-input" class="border rounded px-2 py-1 w-32 text-sm" step="1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span>工作时长:</span>
+                                <span id="work-duration" class="font-medium">0小时0分钟</span>
+                            </div>
+                            <div class="flex justify-between items-center text-secondary" id="overtime-container" style="display: none;">
+                                <span>加班时长:</span>
+                                <span id="overtime-duration" class="font-medium">0小时0分钟</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Countdown Section -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-medium text-gray-800 mb-2 flex items-center">
+                            <i class="ri-timer-line mr-2 text-secondary"></i>下班倒计时
+                        </h3>
+                        <div id="countdown-container" class="text-center">
+                            <div class="text-2xl font-bold text-gray-800" id="countdown-display">--:--:--</div>
+                            <div class="text-sm text-gray-500 mt-1" id="countdown-message">请先打卡上班</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="stats-content" class="tab-content hidden transition-all duration-200 transform opacity-0 scale-95">
+                    <!-- Stats Tab Content -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3 mb-3">
+                        <div class="flex space-x-1">
+                            <button class="stats-period-btn px-3 py-1.5 text-sm rounded bg-primary text-white" data-period="day">今日</button>
+                            <button class="stats-period-btn px-3 py-1.5 text-sm rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-period="week">本周</button>
+                            <button class="stats-period-btn px-3 py-1.5 text-sm rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-period="month">月度</button>
+                            <button class="stats-period-btn px-3 py-1.5 text-sm rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-period="year">年度</button>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-container">
+                        <div class="stats-period-content" id="stats-day">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3 mb-3">
+                                <div class="text-lg font-medium mb-2">今日数据</div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400" id="stats-day-date"></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">工作时长</div>
+                                        <div class="text-xl font-bold text-blue-600 dark:text-blue-400" id="stats-day-duration">0小时</div>
+                                    </div>
+                                    <div class="bg-red-50 dark:bg-red-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">加班时长</div>
+                                        <div class="text-xl font-bold text-red-600 dark:text-red-400" id="stats-day-overtime">0小时</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3">
+                                <div class="text-lg font-medium mb-2">详细时段</div>
+                                <div id="stats-day-detail" class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5">
+                                </div>
+                                <div id="stats-day-timeline" class="mt-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-period-content hidden" id="stats-week">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3 mb-3">
+                                <div class="text-lg font-medium mb-2" id="stats-week-header">本周数据</div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400" id="stats-week-date"></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">总工作时长</div>
+                                        <div class="text-xl font-bold text-blue-600 dark:text-blue-400" id="stats-week-duration">0小时</div>
+                                    </div>
+                                    <div class="bg-red-50 dark:bg-red-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">总加班时长</div>
+                                        <div class="text-xl font-bold text-red-600 dark:text-red-400" id="stats-week-overtime">0小时</div>
+                                    </div>
+                                    <div class="bg-green-50 dark:bg-green-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">出勤天数</div>
+                                        <div class="text-xl font-bold text-green-600 dark:text-green-400" id="stats-week-days">0天</div>
+                                    </div>
+                                    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">日平均工时</div>
+                                        <div class="text-xl font-bold text-purple-600 dark:text-purple-400" id="stats-week-avg">0小时</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3">
+                                <div class="text-lg font-medium mb-2" id="stats-week-overview-title">周度趋势</div>
+                                <div id="stats-week-chart" class="mt-2">
+                                    <!-- Week chart will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-period-content hidden" id="stats-month">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3 mb-3">
+                                <div class="text-lg font-medium mb-2" id="stats-month-header">本月数据</div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400" id="stats-month-date"></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">总工作时长</div>
+                                        <div class="text-xl font-bold text-blue-600 dark:text-blue-400" id="stats-month-duration">0小时</div>
+                                    </div>
+                                    <div class="bg-red-50 dark:bg-red-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">总加班时长</div>
+                                        <div class="text-xl font-bold text-red-600 dark:text-red-400" id="stats-month-overtime">0小时</div>
+                                    </div>
+                                    <div class="bg-green-50 dark:bg-green-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">出勤天数</div>
+                                        <div class="text-xl font-bold text-green-600 dark:text-green-400" id="stats-month-days">0天</div>
+                                    </div>
+                                    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">日平均工时</div>
+                                        <div class="text-xl font-bold text-purple-600 dark:text-purple-400" id="stats-month-avg">0小时</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3">
+                                <div class="text-lg font-medium mb-2" id="stats-month-overview-title">月度趋势</div>
+                                <div id="stats-month-chart" class="mt-2">
+                                    <!-- Month chart will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-period-content hidden" id="stats-year">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3 mb-3">
+                                <div class="text-lg font-medium mb-2" id="stats-year-header">年度数据</div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400" id="stats-year-date"></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">总工作时长</div>
+                                        <div class="text-xl font-bold text-blue-600 dark:text-blue-400" id="stats-year-duration">0小时</div>
+                                    </div>
+                                    <div class="bg-red-50 dark:bg-red-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">总加班时长</div>
+                                        <div class="text-xl font-bold text-red-600 dark:text-red-400" id="stats-year-overtime">0小时</div>
+                                    </div>
+                                    <div class="bg-green-50 dark:bg-green-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">出勤天数</div>
+                                        <div class="text-xl font-bold text-green-600 dark:text-green-400" id="stats-year-days">0天</div>
+                                    </div>
+                                    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-md p-3">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">日平均工时</div>
+                                        <div class="text-xl font-bold text-purple-600 dark:text-purple-400" id="stats-year-monthly-avg">0小时</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-3">
+                                <div class="text-lg font-medium mb-2" id="stats-year-overview-title">年度趋势</div>
+                                <div id="stats-year-chart" class="mt-2">
+                                    <!-- Year chart will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings-content" class="tab-content hidden transition-all duration-200 transform opacity-0 scale-95">
+                    <!-- Settings Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4 mb-4">
+                        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">工作设置</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label for="standard-hours" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">标准工作时长 (小时)</label>
+                                <input type="number" id="standard-hours" min="1" max="24" class="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="8">
+                            </div>
+                            <div>
+                                <label for="overtime-threshold" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">加班阈值 (小时)</label>
+                                <input type="number" id="overtime-threshold" min="1" max="24" class="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="8">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4 mb-4">
+                        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">数据管理</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700 dark:text-gray-300">导出数据</span>
+                                <button id="export-data" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-indigo-600 transition">导出</button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700 dark:text-gray-300">导入数据</span>
+                                <label for="import-file" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-indigo-600 transition cursor-pointer">
+                                    导入
+                                    <input type="file" id="import-file" class="hidden" accept=".json">
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700 dark:text-gray-300">导入历史数据</span>
+                                <a href="import/index.html" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-indigo-600 transition">工具</a>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700 dark:text-gray-300">清空所有数据</span>
+                                <button id="clear-data" class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition">清空</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">关于</h3>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">辛苦我了 v1.0</p>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm">一个简单的工时记录与统计应用，使用浏览器本地存储保存数据。</p>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="p-3 text-center text-xs text-gray-500 dark:text-gray-400 border-t dark:border-gray-700">
+                <div class="flex justify-center items-center">
+                    <span class="inline-flex items-center">
+                        <i class="ri-cow-line mr-1 text-primary"></i>
+                        辛苦我了 由 Github Pages 强力驱动
+                    </span>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/userPreferences.js"></script>
+    <script src="js/timerService.js"></script>
+    <script src="js/uiController.js"></script>
+    <script src="js/statsController.js"></script>
+    <script src="js/settingsController.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

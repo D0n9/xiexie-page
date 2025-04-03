@@ -1,0 +1,717 @@
+/* 主样式文件 */
+
+/* 自定义组件样式 */
+.tab-btn.active {
+    color: var(--primary-color, #4F46E5);
+    border-color: var(--primary-color, #4F46E5);
+}
+
+.period-btn.active {
+    background-color: var(--primary-color, #4F46E5);
+    color: white;
+}
+
+/* 编辑工时样式 */
+.edit-time-btn {
+    transition: transform 0.2s, color 0.2s;
+}
+
+.edit-time-btn:hover {
+    transform: scale(1.2);
+    color: var(--primary-color, #4F46E5);
+}
+
+/* 时间线相关样式 */
+.timeline-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.5rem 0;
+}
+
+@media (min-width: 640px) {
+    .timeline-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.timeline-container:empty::before,
+.timeline-container > .text-center {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.timeline-item {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    border-left: 3px solid #6366F1;
+}
+
+.timeline-item.timeline-current {
+    border-left-color: #4F46E5;
+}
+
+.timeline-divider {
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+
+.timeline-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4b5563;
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.timeline-label.timeline-current {
+    background-color: #e0e7ff;
+    color: #4338ca;
+}
+
+/* 动画样式 */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(79, 70, 229, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+    }
+}
+
+@keyframes overtime-pulse-1 {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(245, 158, 11, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}
+
+@keyframes overtime-pulse-2 {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+@keyframes overtime-pulse-3 {
+    0% {
+        box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.6);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(185, 28, 28, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(185, 28, 28, 0);
+    }
+}
+
+@keyframes overtime-pulse-4 {
+    0% {
+        box-shadow: 0 0 0 0 rgba(127, 29, 29, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(127, 29, 29, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(127, 29, 29, 0);
+    }
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+.overtime-pulse-animation {
+    animation: overtime-pulse-4 1.2s infinite;
+}
+
+.overtime-pulse-animation-1 {
+    animation: overtime-pulse-1 1.8s infinite;
+}
+
+.overtime-pulse-animation-2 {
+    animation: overtime-pulse-2 1.6s infinite;
+}
+
+.overtime-pulse-animation-3 {
+    animation: overtime-pulse-3 1.4s infinite;
+}
+
+.overtime-pulse-animation-4 {
+    animation: overtime-pulse-4 1.2s infinite;
+}
+
+/* 边框颜色定义 */
+.border-primary {
+    border-color: #4F46E5;
+}
+
+.border-overtime-1 {
+    border-color: #F59E0B; /* Amber-500 */
+}
+
+.border-overtime-2 {
+    border-color: #EF4444; /* Red-500 */
+}
+
+.border-overtime-3 {
+    border-color: #B91C1C; /* Red-700 */
+}
+
+.border-overtime-4 {
+    border-color: #7F1D1D; /* Red-900 */
+}
+
+.border-green-500 {
+    border-color: #10B981; /* Green-500 */
+}
+
+/* 状态样式 */
+.working-status {
+    color: #4F46E5;
+}
+
+.overtime-working-status-1 {
+    color: #F59E0B;
+}
+
+.overtime-working-status-2 {
+    color: #EF4444;
+}
+
+.overtime-working-status-3 {
+    color: #B91C1C;
+}
+
+.overtime-working-status-4 {
+    color: #7F1D1D;
+}
+
+.overtime-working-status {
+    color: #DC2626;
+}
+
+.overtime-status {
+    color: #EC4899;
+}
+
+.completed-status {
+    color: #10B981;
+}
+
+/* 响应式样式调整 */
+@media (max-width: 640px) {
+    .time-display {
+        font-size: 1.5rem;
+    }
+    
+    .timeline-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 通用独立应用模式样式 */
+.app-standalone {
+    /* 通用安全区域适配 */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+.app-standalone #app {
+    /* 移除阴影，更符合原生应用的外观 */
+    box-shadow: none;
+    border-radius: 0;
+    max-width: 100%;
+}
+
+.app-standalone .tab-btn {
+    /* 增大触摸区域，更符合移动设计指南 */
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+.app-standalone #app-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    /* 防止橡皮筋滚动效果 */
+    overscroll-behavior-y: none;
+}
+
+/* iOS 独立应用模式特定样式 */
+.ios-standalone {
+    /* iOS特定样式 */
+    -webkit-user-select: none; /* 防止文本选择 */
+    -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */
+}
+
+.ios-standalone header {
+    /* iOS状态栏适配 */
+    padding-top: max(env(safe-area-inset-top), 16px);
+}
+
+/* Android 独立应用模式特定样式 */
+.android-standalone {
+    /* Android特定样式 */
+    user-select: none;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1); /* 使用轻微的点击高亮效果 */
+}
+
+.android-standalone header {
+    /* Material Design风格顶部空间 */
+    padding-top: 16px;
+}
+
+.android-standalone .tab-btn {
+    /* Material Design风格的选项卡 */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.android-standalone button {
+    /* Material Design风格的按钮触摸反馈 */
+    position: relative;
+    overflow: hidden;
+}
+
+.android-standalone button::after {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform .3s, opacity .8s;
+}
+
+.android-standalone button:active::after {
+    transform: scale(0, 0);
+    opacity: .3;
+    transition: 0s;
+}
+
+/* 增强点击反馈效果 */
+@media (hover: hover) {
+    .tab-btn:hover,
+    button:hover {
+        opacity: 0.8;
+    }
+}
+
+/* 活跃状态的触摸反馈 */
+.tab-btn:active, 
+.btn:active, 
+button:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+    transition: transform 0.1s, opacity 0.1s;
+}
+
+/* 响应式布局样式 */
+@media (max-width: 640px) {
+    .w-56.h-56 {
+        width: 180px;
+        height: 180px;
+    }
+    
+    #time-display {
+        font-size: 1.5rem !important;
+    }
+    
+    #status-icon {
+        font-size: 2.5rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+    
+    .timeline-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+    .w-56.h-56 {
+        width: 200px;
+        height: 200px;
+    }
+}
+
+/* 调整主容器的最大宽度以适应不同设备 */
+.max-w-md {
+    max-width: 28rem;
+    width: 100%;
+    margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+    .max-w-md {
+        max-width: 32rem;
+    }
+}
+
+/* 确保页面在小屏幕上有适当的边距 */
+#app {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* 确保时间线布局在不同设备上都能很好地显示 */
+.timeline-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.timeline-item {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.timeline-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-divider {
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 0.75rem 0;
+}
+
+.timeline-label {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #e5e7eb;
+    color: #4b5563;
+}
+
+.timeline-current {
+    background-color: #e0e7ff;
+    color: #4f46e5;
+}
+
+/* 确保按钮在小屏幕上有合适的大小 */
+@media (max-width: 480px) {
+    .px-6.py-2 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+    }
+    
+    .space-x-4 > * + * {
+        margin-left: 0.75rem;
+    }
+    
+    /* 调整统计卡片布局 */
+    .grid.grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    @media (min-width: 400px) {
+        .grid.grid-cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    /* 确保标签按钮在小屏幕上可读 */
+    .tab-btn {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+
+/* Media Queries for Timeline */
+@media (max-width: 480px) {
+    .timeline-container {
+        gap: 0.75rem;
+    }
+    
+    .timeline-item {
+        padding: 0.75rem;
+    }
+    
+    .timeline-label {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .timeline-container {
+        grid-template-columns: 1fr;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    #stats-day-timeline {
+        overflow-y: auto;
+        max-height: 500px;
+        padding-right: 0.5rem;
+    }
+}
+
+/* Scrollbar styles for the timeline */
+#stats-day-timeline::-webkit-scrollbar {
+    width: 4px;
+}
+
+#stats-day-timeline::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#stats-day-timeline::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+}
+
+#stats-day-timeline::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+:root {
+  /* Theme Colors */
+  --color-primary: #6366F1;
+  --color-primary-dark: #4F46E5;
+  --color-primary-light: #E0E7FF;
+  
+  /* Font Sizes */
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  
+  /* Transitions */
+  --transition-fast: 150ms;
+  --transition-normal: 300ms;
+}
+
+/* Global Styles */
+html {
+  font-size: var(--font-size-base);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* Text Classes */
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--color-primary) !important;
+}
+
+.border-primary {
+  border-color: var(--color-primary) !important;
+}
+
+/* Typography by font size */
+.text-size-small {
+  font-size: 0.875rem;
+}
+
+.text-size-medium {
+  font-size: 1rem;
+}
+
+.text-size-large {
+  font-size: 1.125rem;
+}
+
+/* Dark Mode Styles */
+.dark-mode {
+  background-color: #1a1a1a;
+  color: #f3f4f6;
+}
+
+.dark-mode .bg-white {
+  background-color: #2a2a2a !important;
+}
+
+.dark-mode .bg-gray-100 {
+  background-color: #333333 !important;
+}
+
+.dark-mode .text-gray-700, 
+.dark-mode .text-gray-800,
+.dark-mode .text-gray-900 {
+  color: #e5e7eb !important;
+}
+
+.dark-mode .text-gray-500, 
+.dark-mode .text-gray-600 {
+  color: #9ca3af !important;
+}
+
+.dark-mode .border-gray-200,
+.dark-mode .border-gray-300 {
+  border-color: #4b5563 !important;
+}
+
+.dark-mode input, 
+.dark-mode select {
+  background-color: #333333;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
+.dark-mode .timeline-item {
+  background-color: #2a2a2a;
+}
+
+.dark-mode .timeline-label {
+  background-color: #333333;
+  color: #e5e7eb;
+}
+
+.dark-mode .timeline-label.timeline-current {
+  background-color: #3730a3;
+  color: #e0e7ff;
+}
+
+/* Theme Color Classes */
+[data-theme="indigo"] {
+  --color-primary: #6366F1;
+  --color-primary-dark: #4F46E5;
+  --color-primary-light: #E0E7FF;
+}
+
+[data-theme="blue"] {
+  --color-primary: #3B82F6;
+  --color-primary-dark: #2563EB;
+  --color-primary-light: #DBEAFE;
+}
+
+[data-theme="red"] {
+  --color-primary: #EF4444;
+  --color-primary-dark: #DC2626;
+  --color-primary-light: #FEE2E2;
+}
+
+[data-theme="green"] {
+  --color-primary: #10B981;
+  --color-primary-dark: #059669;
+  --color-primary-light: #D1FAE5;
+}
+
+[data-theme="purple"] {
+  --color-primary: #8B5CF6;
+  --color-primary-dark: #7C3AED;
+  --color-primary-light: #EDE9FE;
+}
+
+/* 删除按钮悬停效果 */
+.timeline-item button.text-red-500 {
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.timeline-item button.text-red-500:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* 确保图标和文字对齐 */
+.timeline-item button.text-red-500 i {
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* 自定义确认弹窗样式 */
+.scale-95 {
+    transform: scale(0.95);
+}
+
+.scale-100 {
+    transform: scale(1);
+}
+
+.transition-transform {
+    transition-property: transform;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* 确保按钮在触摸设备上有明显的反馈 */
+#confirm-cancel:active, 
+#confirm-delete:active {
+    transform: scale(0.98);
+}
+
+/* 确保删除按钮显眼且有警示效果 */
+#confirm-delete {
+    background-color: #EF4444;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+#confirm-delete:hover {
+    background-color: #DC2626;
+}
+
+/* 确保黑暗模式下弹窗内容可见 */
+.dark .dark\:bg-gray-800 {
+    background-color: #1F2937;
+}
+
+.dark .dark\:text-white {
+    color: #F9FAFB;
+}
+
+.dark .dark\:text-gray-400 {
+    color: #9CA3AF;
+}
+
+.dark .dark\:bg-gray-700 {
+    background-color: #374151;
+}
+
+.dark .dark\:bg-gray-600 {
+    background-color: #4B5563;
+} 

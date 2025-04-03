@@ -1,0 +1,80 @@
+{
+  "name": "辛苦我了",
+  "short_name": "辛苦我了",
+  "description": "简单高效的工时记录与统计应用",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#6366F1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/maskable-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/screenshot1.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "assets/screenshot2.png",
+      "sizes": "1080x2340",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "platform": "android"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "打卡上班",
+      "url": "/#clock-in",
+      "description": "直接打卡上班",
+      "icons": [{ "src": "assets/shortcut-clock-in.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "查看报表",
+      "url": "/#stats",
+      "description": "查看工作报表",
+      "icons": [{ "src": "assets/shortcut-stats.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "categories": ["productivity", "utilities"],
+  "iarc_rating_id": "",
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "dir": "ltr",
+  "lang": "zh-CN",
+  "id": "xinku-wole-pwa",
+  "scope": "/"
+} 
