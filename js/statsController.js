@@ -1400,7 +1400,12 @@ const StatsController = {
             let overtimeHours = 0;
             
             if (dayData) {
-                const standardWorkMinutes = Math.min(dayData.workMinutes, CONFIG.WORK_HOURS.STANDARD_HOURS * 60);
+                // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
+                
+                // 标准工时不应超过预期工作时长
+                const standardWorkMinutes = Math.min(dayData.workMinutes, expectedWorkMinutes);
                 standardWorkHours = parseFloat((standardWorkMinutes / 60).toFixed(2));
                 
                 overtimeHours = parseFloat((dayData.overtimeMinutes / 60).toFixed(2));
@@ -1409,11 +1414,14 @@ const StatsController = {
                 const todayDuration = TimerService.calculateTodayWorkDuration();
                 const todayOvertime = TimerService.calculateTodayOvertime();
                 
-                // 使用 TimerService 提供的正确计算的工时数据，其中已经考虑了标准上班时间
-                standardWorkHours = Math.min(
-                    parseFloat(((todayDuration.hours * 60 + todayDuration.minutes) / 60).toFixed(2)), 
-                    CONFIG.WORK_HOURS.STANDARD_HOURS
-                );
+                // 获取预期工作时长
+                const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
+                
+                // 标准工时不应超过预期工作时长
+                const todayWorkMinutes = todayDuration.hours * 60 + todayDuration.minutes;
+                const standardWorkMinutes = Math.min(todayWorkMinutes, expectedWorkMinutes);
+                standardWorkHours = parseFloat((standardWorkMinutes / 60).toFixed(2));
                 
                 overtimeHours = parseFloat(((todayOvertime.hours * 60 + todayOvertime.minutes) / 60).toFixed(2));
             }
@@ -1575,7 +1583,8 @@ const StatsController = {
                             stepSize: 4
                         },
                         suggestedMax: Math.ceil(Math.max(
-                            CONFIG.WORK_HOURS.STANDARD_HOURS,
+                            // 使用预期工作时长，而不是固定的标准工时
+                            TimerService.calculateExpectedWorkDuration().hours,
                             ...standardWorkData.map((std, i) => std + overtimeData[i])
                         )) + 2
                     }
