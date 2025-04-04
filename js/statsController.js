@@ -589,7 +589,9 @@ const StatsController = {
                     workDuration.minutes = totalWorkMinutes % 60;
                     
                     // 计算加班时间 - 基于重新计算的总工时
-                    const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                    // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                    const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                    const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
                     const totalOvertimeMinutes = Math.max(0, totalWorkMinutes - expectedWorkMinutes);
                     
                     overtime.hours = Math.floor(totalOvertimeMinutes / 60);
@@ -640,7 +642,9 @@ const StatsController = {
                     workDuration.minutes = totalWorkMinutes % 60;
                     
                     // 计算加班时间 - 基于重新计算的总工时
-                    const expectedWorkMinutes = CONFIG.WORK_HOURS.STANDARD_HOURS * 60;
+                    // 使用TimerService.calculateExpectedWorkDuration获取正确的预期工作时长
+                    const expectedDuration = TimerService.calculateExpectedWorkDuration();
+                    const expectedWorkMinutes = expectedDuration.hours * 60 + expectedDuration.minutes;
                     const totalOvertimeMinutes = Math.max(0, totalWorkMinutes - expectedWorkMinutes);
                     
                     overtime.hours = Math.floor(totalOvertimeMinutes / 60);
